@@ -136,11 +136,20 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
         protected override Task ExecuteAsync(CancellationToken Cancellation)
         {
-            TCPHost.AddService<IWheelCompatibilityService>(this);
+            try
+            {
+                TCPHost.AddService<IWheelCompatibilityService>(this);
 
-            WheelInputTransformer.Start();
+                WheelInputTransformer.Start();
 
-            TCPHost.Open();
+                TCPHost.Open();
+                DiagnosticsLog.Write("Configuration endpoint listening on TCP 127.0.0.1:16581.");
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Write("Service start failed (is another copy / the old installed service running on port 16581?): " + ex);
+                throw;
+            }
 
             return Task.CompletedTask;
         }
