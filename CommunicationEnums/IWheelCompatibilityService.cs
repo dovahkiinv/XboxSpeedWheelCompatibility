@@ -31,5 +31,7 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetOutputMode(int Mode);
         /// <summary>Hide/unhide the real Xbox 360 receiver from games (HidHide). Returns a status message.</summary>
         public string SetHideRealDevice(bool Hide);
+        /// <summary>Enable/disable the vJoy virtual wheel on the given vJoy device (1-16).</summary>
+        public void SetVJoy(bool Enabled, int DeviceId);
     }
 }

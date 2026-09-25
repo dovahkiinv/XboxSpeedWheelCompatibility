@@ -71,6 +71,10 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 InvertSteering = SettingsManager.InvertSteering,
                 HideRealDevice = SettingsManager.HideRealDevice,
                 HidHideStatus = HidHideManager.Status,
+                VJoyEnabled = SettingsManager.VJoyEnabled,
+                VJoyDeviceId = SettingsManager.VJoyDeviceId,
+                VJoyStatus = VJoyOutput.Status,
+                RotationDegrees = SettingsManager.RotationDegrees,
                 ScanLines = WheelManager.LastScan,
                 RecentLog = DiagnosticsLog.GetRecent(12),
                 LogPath = DiagnosticsLog.OutputLogPath + "  |  " + DiagnosticsLog.LogPath,
@@ -100,6 +104,14 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
         {
             SettingsManager.HideRealDevice = Hide;
             return Hide ? HidHideManager.Enable() : HidHideManager.Disable();
+        }
+
+        public void SetVJoy(bool Enabled, int DeviceId)
+        {
+            SettingsManager.VJoyDeviceId = DeviceId;
+            SettingsManager.VJoyEnabled = Enabled;
+            DiagnosticsLog.Write($"vJoy wheel {(Enabled ? "enabled" : "disabled")} (device {SettingsManager.VJoyDeviceId})");
+            InjectionManager.ReconfigureOutputs();
         }
 
         public void SetOutputMode(int Mode)

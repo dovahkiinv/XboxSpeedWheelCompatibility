@@ -33,6 +33,8 @@ namespace XboxWheelCompatibility.WheelTransformer
         /// <summary>ViGEmBus virtual Xbox 360 controller (XInput + DirectInput + WGI games).</summary>
         ViGEm = 2,
         Both = 3,
+        /// <summary>No virtual gamepad (use only the vJoy wheel).</summary>
+        None = 4,
     }
 
     /// <summary>Which source axis is used as steering for Speed Wheel / gamepad devices.</summary>

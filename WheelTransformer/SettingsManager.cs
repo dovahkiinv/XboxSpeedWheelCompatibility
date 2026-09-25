@@ -69,6 +69,19 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.HideRealDevice = value);
         }
 
+        /// <summary>Also output a virtual DirectInput wheel through vJoy.</summary>
+        public static bool VJoyEnabled
+        {
+            get { EnsureLoaded(); return _data.VJoyEnabled; }
+            set => Update(d => d.VJoyEnabled = value);
+        }
+
+        public static int VJoyDeviceId
+        {
+            get { EnsureLoaded(); return _data.VJoyDeviceId; }
+            set => Update(d => d.VJoyDeviceId = Math.Clamp(value, 1, 16));
+        }
+
         public static OutputMode Output
         {
             get { EnsureLoaded(); return _data.Output; }
@@ -169,6 +182,8 @@ namespace XboxWheelCompatibility.WheelTransformer
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
             public OutputMode Output { get; set; } = OutputMode.Auto;
             public bool HideRealDevice { get; set; } = false;
+            public bool VJoyEnabled { get; set; } = false;
+            public int VJoyDeviceId { get; set; } = 1;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

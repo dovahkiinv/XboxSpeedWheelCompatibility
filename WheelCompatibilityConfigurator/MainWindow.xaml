@@ -24,6 +24,8 @@
         </Style>
     </Window.Resources>
 
+    <TabControl>
+    <TabItem Header="Main">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -343,6 +345,7 @@
                     <ComboBoxItem Content="InputInjector only (F1 25 / new games)" />
                     <ComboBoxItem Content="ViGEm Xbox 360 only (CarX, older games, F1 25)" />
                     <ComboBoxItem Content="Both" />
+                    <ComboBoxItem Content="None (vJoy wheel only)" />
                 </ComboBox>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Device mode" VerticalAlignment="Center" />
                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="DeviceModeCombo" Margin="0,2" SelectionChanged="DeviceModeCombo_SelectionChanged">
@@ -379,4 +382,56 @@
         </StackPanel>
     </Grid>
     </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Wheel emulation (vJoy)">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+                <TextBlock Text="Virtual steering wheel for games" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
+                           Text="Creates a vJoy DirectInput device that games can bind as a steering wheel: X axis = steering, Y axis = throttle, Z axis = brake (separate pedals), buttons 1-14." />
+
+                <CheckBox x:Name="VJoyEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold"
+                          Content="Enable virtual wheel (vJoy)"
+                          Checked="VJoySettings_Changed" Unchecked="VJoySettings_Changed" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="vJoy device" VerticalAlignment="Center" Width="90" />
+                    <ComboBox x:Name="VJoyDeviceCombo" Width="80" SelectionChanged="VJoyDeviceCombo_SelectionChanged" />
+                </StackPanel>
+
+                <Border Margin="0,10,0,0" Padding="6,4" CornerRadius="3" Background="#F0F0F0" BorderBrush="#B0B0B0" BorderThickness="1">
+                    <TextBlock x:Name="VJoyStatusText" Text="Off" TextWrapping="Wrap" FontSize="11" />
+                </Border>
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Rotation angle of the virtual wheel" FontWeight="SemiBold" />
+                <TextBlock x:Name="VJoyRotationText" Text="Current: 180°" Margin="0,4,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Content="180°" Padding="8,2" Margin="0,0,4,0" Tag="180" Click="RotationPreset_Click" />
+                    <Button Content="270°" Padding="8,2" Margin="0,0,4,0" Tag="270" Click="RotationPreset_Click" />
+                    <Button Content="360°" Padding="8,2" Margin="0,0,4,0" Tag="360" Click="RotationPreset_Click" />
+                    <Button Content="540°" Padding="8,2" Margin="0,0,4,0" Tag="540" Click="RotationPreset_Click" />
+                    <Button Content="900°" Padding="8,2" Margin="0,0,4,0" Tag="900" Click="RotationPreset_Click" />
+                </StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Margin="0,4,0,0"
+                           Text="The full X axis equals half of this angle to each side. With 180° the game gets full lock when you turn the Speed Wheel 90° left/right. If the game has its own 'wheel rotation' / 'steering lock' setting, set it to the same value (180°). Dead zone, calibration and sensitivity from the Main tab are applied too." />
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Setup" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0">
+                    1. Install vJoy (github.com/BrunnerInnovation/vJoy/releases) and reboot.<LineBreak />
+                    2. Open 'Configure vJoy', device 1: enable axes X, Y, Z, set Buttons = 16, POVs = 0, click Apply.<LineBreak />
+                    3. Tick 'Enable virtual wheel (vJoy)' above.<LineBreak />
+                    4. Main tab: set 'Virtual output' to 'None (vJoy wheel only)' so the game does not also see a gamepad, and tick 'Hide real Speed Wheel' (HidHide).<LineBreak />
+                    5. In the game choose the vJoy device and bind: steering = X axis, throttle = Y axis, brake = Z axis, gears = buttons 5/6.
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#8B1A1A" Margin="0,8,0,0"
+                           Text="Note: some games (e.g. official F1 titles) only list wheels they know by name; they may treat vJoy as a generic device where you bind axes manually. CarX and most sims accept any DirectInput wheel." />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"
+                           Text="Buttons: 1 A, 2 B, 3 X, 4 Y, 5 LB (gear down), 6 RB (gear up), 7 Back, 8 Start, 9 LS, 10 RS, 11-14 D-pad up/down/left/right." />
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+    </TabControl>
 </Window>

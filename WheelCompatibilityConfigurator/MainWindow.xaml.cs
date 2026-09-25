@@ -25,6 +25,8 @@ namespace WheelCompatibilityConfigurator
         {
             InitializeComponent();
 
+            for (int i = 1; i <= 16; i++) VJoyDeviceCombo.Items.Add(i.ToString(CultureInfo.InvariantCulture));
+
             ButtonIdleBrush.Freeze();
             ButtonActiveBrush.Freeze();
 
@@ -61,6 +63,8 @@ namespace WheelCompatibilityConfigurator
                         SteeringAxisCombo.SelectedIndex = Math.Clamp(status.SteeringAxis, 0, 4);
                         InvertSteeringCheck.IsChecked = status.InvertSteering;
                         HideRealDeviceCheck.IsChecked = status.HideRealDevice;
+                        VJoyEnabledCheck.IsChecked = status.VJoyEnabled;
+                        VJoyDeviceCombo.SelectedIndex = Math.Clamp(status.VJoyDeviceId, 1, 16) - 1;
                         SuppressDeviceEvents = false;
                         DeviceSettingsLoaded = true;
                     }
@@ -70,6 +74,8 @@ namespace WheelCompatibilityConfigurator
                         : string.Join(Environment.NewLine, status.ScanLines);
                     LogPathText.Text = "Log file: " + status.LogPath;
                     HidHideStatusText.Text = status.HidHideStatus;
+                    VJoyStatusText.Text = status.VJoyEnabled ? status.VJoyStatus : "Off";
+                    VJoyRotationText.Text = $"Current: {status.RotationDegrees:0}° (full lock at {status.RotationDegrees / 2:0}° to each side)";
                     LogText.Text = string.Join(Environment.NewLine, status.RecentLog);
                     LogText.ScrollToEnd();
                 }
@@ -113,6 +119,19 @@ namespace WheelCompatibilityConfigurator
             HideRealDeviceCheck.IsEnabled = true;
         }
 
+        private void VJoySettings_Changed(object sender, RoutedEventArgs e) => SendVJoySettings();
+
+        private void VJoyDeviceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => SendVJoySettings();
+
+        private void SendVJoySettings()
+        {
+            if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
+            bool enabled = VJoyEnabledCheck.IsChecked == true;
+            int id = VJoyDeviceCombo.SelectedIndex < 0 ? 1 : VJoyDeviceCombo.SelectedIndex + 1;
+            VJoyStatusText.Text = enabled ? "Connecting to vJoy..." : "Off";
+            _ = Task.Run(() => ServiceCommunicator.TrySetVJoy(enabled, id));
+        }
+
         private void InvertSteeringCheck_Changed(object sender, RoutedEventArgs e)
         {
             if (SuppressDeviceEvents) return;
@@ -144,7 +163,7 @@ namespace WheelCompatibilityConfigurator
             if (!OutputModeLoaded)
             {
                 SuppressDeviceEvents = true;
-                OutputModeCombo.SelectedIndex = Math.Clamp(diag.OutputMode, 0, 3);
+                OutputModeCombo.SelectedIndex = Math.Clamp(diag.OutputMode, 0, 4);
                 SuppressDeviceEvents = false;
                 OutputModeLoaded = true;
             }

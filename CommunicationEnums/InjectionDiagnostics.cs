@@ -15,7 +15,7 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public string ActiveOutputs { get; set; } = "";
         public bool ViGEmActive { get; set; }
         public string? ViGEmError { get; set; }
-        /// <summary>0 = Auto, 1 = InputInjector, 2 = ViGEm, 3 = Both.</summary>
+        /// <summary>0 = Auto, 1 = InputInjector, 2 = ViGEm, 3 = Both, 4 = None.</summary>
         public int OutputMode { get; set; }
     }
 }

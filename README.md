@@ -83,6 +83,15 @@ Unticking it, or stopping the service normally, unhides them again. If the servi
 hiding is on, run `"C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off`
 or open HidHide Configuration Client and untick the devices.
 
+### Virtual steering wheel (vJoy)
+
+The **Wheel emulation (vJoy)** tab outputs a DirectInput device that games can bind as a wheel:
+X = steering, Y = throttle, Z = brake, buttons 1–14. The X axis follows the *Rotation angle*
+(180° = full lock at 90° to each side). Install [vJoy](https://github.com/BrunnerInnovation/vJoy/releases),
+enable axes X/Y/Z and 16 buttons for device 1 in *Configure vJoy*, then tick *Enable virtual wheel*.
+Set *Virtual output* to *None (vJoy wheel only)* and hide the real receiver with HidHide so the game sees
+only the wheel. Games with a fixed list of supported wheels may treat vJoy as a generic device.
+
 ### F1 25 notes
 
 - The game also sees the original Speed Wheel as a normal Xbox controller, so it may receive input from

@@ -28,7 +28,7 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static readonly object OutputLock = new();
 
         /// <summary>True when at least one virtual controller is active.</summary>
-        public static bool InjectorAvailable => Injector != null || ViGEmOutput.Connected;
+        public static bool InjectorAvailable => Injector != null || ViGEmOutput.Connected || VJoyOutput.Connected;
         public static string? InjectorErrorMessage => InjectorCreationError ?? ViGEmOutput.Error;
         public static bool InputInjectorActive => Injector != null;
         public static bool ViGEmActive => ViGEmOutput.Connected;
@@ -42,6 +42,7 @@ namespace XboxWheelCompatibility.WheelTransformer
                 var parts = new List<string>();
                 if (ViGEmOutput.Connected) parts.Add("ViGEm Xbox 360");
                 if (Injector != null) parts.Add("InputInjector");
+                if (VJoyOutput.Connected) parts.Add("vJoy wheel");
                 return parts.Count > 0 ? string.Join(" + ", parts) : "none";
             }
         }
@@ -57,6 +58,15 @@ namespace XboxWheelCompatibility.WheelTransformer
                 _outputsDirty = false;
 
                 var mode = SettingsManager.Output;
+                if (SettingsManager.VJoyEnabled)
+                {
+                    VJoyOutput.Connect(SettingsManager.VJoyDeviceId);
+                }
+                else
+                {
+                    VJoyOutput.Disconnect();
+                }
+
                 bool wantViGEm = mode == OutputMode.ViGEm || mode == OutputMode.Both || mode == OutputMode.Auto;
                 bool vigemOk = wantViGEm && ViGEmOutput.TryConnect();
                 if (!wantViGEm) ViGEmOutput.Disconnect();
@@ -167,7 +177,7 @@ namespace XboxWheelCompatibility.WheelTransformer
 
             LogAxesIfChanged(reading);
 
-            if (Injector == null && !ViGEmOutput.Connected) return;
+            if (Injector == null && !ViGEmOutput.Connected && !VJoyOutput.Connected) return;
 
             double adjustedWheel = ApplySensitivity(reading.Steering);
 
@@ -175,6 +185,11 @@ namespace XboxWheelCompatibility.WheelTransformer
 
             try
             {
+                if (VJoyOutput.Connected)
+                {
+                    VJoyOutput.Submit(adjustedWheel, reading.Throttle, reading.Brake, reading.OutputButtons);
+                }
+
                 if (ViGEmOutput.Connected)
                 {
                     ViGEmOutput.Submit(reading.OutputButtons, reading.Brake, reading.Throttle, adjustedWheel);
@@ -255,6 +270,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             lock (OutputLock)
             {
                 ViGEmOutput.Disconnect();
+                VJoyOutput.Disconnect();
                 DestroyInjector();
             }
         }

@@ -21,6 +21,12 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public bool HideRealDevice { get; set; }
         public string HidHideStatus { get; set; } = "";
 
+        /// <summary>Virtual DirectInput wheel (vJoy).</summary>
+        public bool VJoyEnabled { get; set; }
+        public int VJoyDeviceId { get; set; } = 1;
+        public string VJoyStatus { get; set; } = "";
+        public double RotationDegrees { get; set; }
+
         /// <summary>Everything seen in the last device scan (RacingWheels, XInput slots, Gamepads).</summary>
         public string[] ScanLines { get; set; } = Array.Empty<string>();
 
