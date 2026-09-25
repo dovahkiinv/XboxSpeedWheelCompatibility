@@ -38,6 +38,7 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static long _lastScanMs = -100000;
         private const long ScanIntervalMs = 1000;
         private static bool _initialized = false;
+        private static bool _firstScanLogged = false;
 
         // Axis range tracking for SteeringAxisSource.Auto
         private static readonly double[] AxisMaxAbs = new double[5];
@@ -139,8 +140,9 @@ namespace XboxWheelCompatibility.WheelTransformer
             MainGamepad = gamepad;
             ActiveDeviceName = name;
 
-            if (deviceChanged)
+            if (deviceChanged || !_firstScanLogged)
             {
+                _firstScanLogged = true;
                 Array.Clear(AxisMaxAbs);
                 var sb = new StringBuilder();
                 sb.Append($"Active device -> {kind}{(name.Length > 0 ? " (" + name + ")" : "")}; mode={mode}. Scan:");
