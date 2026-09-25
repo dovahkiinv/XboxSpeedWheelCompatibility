@@ -14,6 +14,8 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void Start();
         public double GetSensitivity();
         public void SetSensitivity(double Sensitivity);
+        public double GetDeadZone();
+        public void SetDeadZone(double DeadZone);
         public WheelReadingSnapshot GetReadingSnapshot();
         public InjectionDiagnostics GetInjectionDiagnostics();
 

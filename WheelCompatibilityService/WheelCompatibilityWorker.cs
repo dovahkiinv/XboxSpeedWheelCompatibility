@@ -45,6 +45,16 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             SettingsManager.Sensitivity = Sensitivity;
         }
 
+        public double GetDeadZone()
+        {
+            return SettingsManager.DeadZone;
+        }
+
+        public void SetDeadZone(double DeadZone)
+        {
+            SettingsManager.DeadZone = DeadZone;
+        }
+
         public DeviceStatus GetDeviceStatus()
         {
             return new DeviceStatus

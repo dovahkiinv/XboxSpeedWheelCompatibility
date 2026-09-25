@@ -66,8 +66,20 @@ namespace XboxWheelCompatibility.WheelTransformer
             }
         }
 
+        /// <summary>
+        /// Dead zone (values inside it become 0, the rest is rescaled so full lock is still 1.0),
+        /// followed by the sensitivity curve.
+        /// </summary>
         public static double ApplySensitivity(double wheelValue)
         {
+            double deadZone = SettingsManager.DeadZone;
+            if (deadZone > 0)
+            {
+                double mag = Math.Abs(wheelValue);
+                if (mag <= deadZone) return 0.0;
+                wheelValue = Math.Sign(wheelValue) * Math.Min(1.0, (mag - deadZone) / (1.0 - deadZone));
+            }
+
             double sensitivity = SettingsManager.Sensitivity;
             if (sensitivity <= 0) return wheelValue;
             if (Math.Abs(sensitivity - 1.0) < 0.0001) return wheelValue;

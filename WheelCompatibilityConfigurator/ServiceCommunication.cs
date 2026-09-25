@@ -136,6 +136,24 @@ namespace WheelCompatibilityConfigurator
             }
         }
 
+        public bool TrySetDeadZone(double deadZone) => TryInvoke(p => p.SetDeadZone(deadZone));
+
+        public double? TryGetDeadZone()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.GetDeadZone();
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
         public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
         public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));
         public bool TrySetInvertSteering(bool invert) => TryInvoke(p => p.SetInvertSteering(invert));

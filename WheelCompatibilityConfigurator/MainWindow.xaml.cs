@@ -158,6 +158,15 @@ namespace WheelCompatibilityConfigurator
 
         private async Task InitializeSensitivityAsync()
         {
+            double? deadZone = await Task.Run(() => ServiceCommunicator.TryGetDeadZone());
+            if (deadZone.HasValue)
+            {
+                SuppressSliderEvent = true;
+                DeadZoneSlider.Value = deadZone.Value;
+                DeadZoneValueLabel.Content = deadZone.Value.ToString("0.00", CultureInfo.InvariantCulture);
+                SuppressSliderEvent = false;
+            }
+
             double? sensitivity = await Task.Run(() => ServiceCommunicator.TryGetSensitivity());
             if (!sensitivity.HasValue) return;
 
@@ -294,6 +303,16 @@ namespace WheelCompatibilityConfigurator
             SensitivityValueLabel.Content = value.ToString("0.00", CultureInfo.InvariantCulture);
 
             _ = Task.Run(() => ServiceCommunicator.TrySetSensitivity(value));
+        }
+
+        private void DeadZoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (DeadZoneValueLabel == null) return;
+            double value = Math.Round(e.NewValue, 2);
+            DeadZoneValueLabel.Content = value.ToString("0.00", CultureInfo.InvariantCulture);
+            if (SuppressSliderEvent || !IsLoaded) return;
+
+            _ = Task.Run(() => ServiceCommunicator.TrySetDeadZone(value));
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)

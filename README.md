@@ -8,7 +8,7 @@ This project builds on [Camren Mumme's XboxWheelCompatibility](https://github.co
 
 - Wheel steering maps to the left stick; throttle and brake map to the right and left triggers.
 - D-pad, gear paddles, and six wheel buttons map to Xbox controller buttons.
-- Adjustable steering sensitivity from 0.10 to 3.00, saved across service restarts.
+- Adjustable steering sensitivity from 0.01 to 3.00 and a steering dead zone, saved across service restarts.
 - Side-by-side rotating wheel displays compare raw input and adjusted output.
 - Live pedal bars, button indicators, connection status, and injection diagnostics.
 - .NET 8 service and WPF configurator, with service-offline handling and reduced polling overhead.
@@ -118,7 +118,9 @@ The installer uses Windows Installer's service management and rollback support. 
 
 To build the installer from source, run `./build-installer.ps1` in PowerShell. This installs a pinned WiX build tool under the ignored `artifacts` directory and writes the MSI there.
 
-## Steering sensitivity
+## Steering sensitivity and dead zone
+
+- Dead zone (`0.00`–`0.50`, default `0.05`): steering inside it is sent as 0, the rest is rescaled so full lock is still 100 %. The Speed Wheel drifts about ±0.07 at rest, so `0.08` is a good start.
 
 - `1.00`: linear steering.
 - Below `1.00`: gentler steering near the center.
