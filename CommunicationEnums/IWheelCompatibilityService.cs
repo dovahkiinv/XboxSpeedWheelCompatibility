@@ -38,5 +38,6 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public PedalsStatus GetPedalsStatus();
         public void SetPedals(bool Enabled, string DeviceKey, int Axis, bool Swap, double DeadZone);
         public string CalibratePedalsCenter();
+        public void SetPedalsRange(double ThrottleRange, double BrakeRange);
     }
 }

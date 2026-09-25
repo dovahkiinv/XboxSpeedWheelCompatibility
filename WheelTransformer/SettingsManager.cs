@@ -89,6 +89,9 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static int PedalsAxis { get { EnsureLoaded(); return _data.PedalsAxis; } set => Update(d => d.PedalsAxis = Math.Clamp(value, 0, 5)); }
         public static bool PedalsSwap { get { EnsureLoaded(); return _data.PedalsSwap; } set => Update(d => d.PedalsSwap = value); }
         public static double PedalsDeadZone { get { EnsureLoaded(); return _data.PedalsDeadZone; } set => Update(d => d.PedalsDeadZone = Math.Clamp(value, 0.0, 0.5)); }
+        /// <summary>Pedal travel (after dead zone) that already gives 100 % (0.1..1.0; 0.5 = full at half press).</summary>
+        public static double ThrottleRange { get { EnsureLoaded(); return _data.ThrottleRange; } set => Update(d => d.ThrottleRange = Math.Clamp(value, 0.1, 1.0)); }
+        public static double BrakeRange { get { EnsureLoaded(); return _data.BrakeRange; } set => Update(d => d.BrakeRange = Math.Clamp(value, 0.1, 1.0)); }
         public static double PedalsCenter { get { EnsureLoaded(); return _data.PedalsCenter; } set => Update(d => d.PedalsCenter = Math.Clamp(value, 0.05, 0.95)); }
 
         public static OutputMode Output
@@ -199,6 +202,8 @@ namespace XboxWheelCompatibility.WheelTransformer
             public bool PedalsSwap { get; set; } = false;
             public double PedalsDeadZone { get; set; } = 0.05;
             public double PedalsCenter { get; set; } = 0.5;
+            public double ThrottleRange { get; set; } = 1.0;
+            public double BrakeRange { get; set; } = 1.0;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

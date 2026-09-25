@@ -88,7 +88,8 @@ or open HidHide Configuration Client and untick the devices.
 The **Pedals** tab reads any extra DirectInput joystick (e.g. an old wheel's pedal unit shown as
 "Steering Wheel" in joy.cpl) through WinMM. Combined pedals on a single axis are supported: rest =
 center, one pedal moves the axis up (throttle), the other down (brake) – use *Swap* if reversed.
-Pick the device and axis, set the pedal dead zone, release the pedals and click *Calibrate center*.
+Pick the device and axis, set the pedal dead zone and the pedal range (e.g. 50 % = full throttle/brake
+at half pedal travel, separately for each pedal), release the pedals and click *Calibrate center*.
 Pedal values are merged with the Speed Wheel triggers. HidHide only hides Microsoft (VID_045E)
 receiver devices, so the pedals stay visible to the service.
 

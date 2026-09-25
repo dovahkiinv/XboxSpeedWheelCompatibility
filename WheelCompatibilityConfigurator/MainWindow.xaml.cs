@@ -172,6 +172,10 @@ namespace WheelCompatibilityConfigurator
                     PedalsSwapCheck.IsChecked = st.Swap;
                     PedalsDeadZoneSlider.Value = st.DeadZone;
                     PedalsDeadZoneLabel.Text = st.DeadZone.ToString("0.00", CultureInfo.InvariantCulture);
+                    ThrottleRangeSlider.Value = st.ThrottleRange;
+                    BrakeRangeSlider.Value = st.BrakeRange;
+                    ThrottleRangeLabel.Text = $"{st.ThrottleRange * 100:0}%";
+                    BrakeRangeLabel.Text = $"{st.BrakeRange * 100:0}%";
                     PedalsLoaded = true;
                 }
             }
@@ -215,6 +219,25 @@ namespace WheelCompatibilityConfigurator
             if (PedalsDeadZoneLabel == null) return;
             PedalsDeadZoneLabel.Text = Math.Round(e.NewValue, 2).ToString("0.00", CultureInfo.InvariantCulture);
             SendPedalsSettings();
+        }
+
+        private void PedalRangeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ThrottleRangeLabel == null || BrakeRangeLabel == null || ThrottleRangeSlider == null || BrakeRangeSlider == null) return;
+            ThrottleRangeLabel.Text = $"{ThrottleRangeSlider.Value * 100:0}%";
+            BrakeRangeLabel.Text = $"{BrakeRangeSlider.Value * 100:0}%";
+            if (SuppressPedalsEvents || !PedalsLoaded) return;
+            double t = Math.Round(ThrottleRangeSlider.Value, 2), b = Math.Round(BrakeRangeSlider.Value, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetPedalsRange(t, b));
+        }
+
+        private void PedalRangePreset_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && double.TryParse(btn.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+            {
+                ThrottleRangeSlider.Value = v;
+                BrakeRangeSlider.Value = v;
+            }
         }
 
         private async void PedalsCalibrateButton_Click(object sender, RoutedEventArgs e)

@@ -120,6 +120,8 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 Swap = SettingsManager.PedalsSwap,
                 DeadZone = SettingsManager.PedalsDeadZone,
                 Center = SettingsManager.PedalsCenter,
+                ThrottleRange = SettingsManager.ThrottleRange,
+                BrakeRange = SettingsManager.BrakeRange,
                 RawAxes = PedalsManager.RawAxes,
                 Throttle = PedalsManager.Throttle,
                 Brake = PedalsManager.Brake,
@@ -139,6 +141,12 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
         }
 
         public string CalibratePedalsCenter() => PedalsManager.CalibrateCenter();
+
+        public void SetPedalsRange(double ThrottleRange, double BrakeRange)
+        {
+            SettingsManager.ThrottleRange = ThrottleRange;
+            SettingsManager.BrakeRange = BrakeRange;
+        }
 
         public void SetVJoy(bool Enabled, int DeviceId)
         {

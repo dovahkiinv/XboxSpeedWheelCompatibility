@@ -20,6 +20,9 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public bool Swap { get; set; }
         public double DeadZone { get; set; }
         public double Center { get; set; } = 0.5;
+        /// <summary>Pedal travel giving 100 % (0.1..1.0).</summary>
+        public double ThrottleRange { get; set; } = 1.0;
+        public double BrakeRange { get; set; } = 1.0;
 
         /// <summary>Raw axes 0..1 (X, Y, Z, R, U, V).</summary>
         public double[] RawAxes { get; set; } = new double[6];

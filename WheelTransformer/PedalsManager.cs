@@ -179,14 +179,12 @@ namespace XboxWheelCompatibility.WheelTransformer
             up = ApplyDeadZone(up, dz);
             down = ApplyDeadZone(down, dz);
 
-            if (SettingsManager.PedalsSwap)
-            {
-                Throttle = down; Brake = up;
-            }
-            else
-            {
-                Throttle = up; Brake = down;
-            }
+            double throttle = SettingsManager.PedalsSwap ? down : up;
+            double brake = SettingsManager.PedalsSwap ? up : down;
+
+            // Pedal range: e.g. 0.5 = 100 % already at half of the pedal travel.
+            Throttle = Math.Min(1.0, throttle / Math.Clamp(SettingsManager.ThrottleRange, 0.1, 1.0));
+            Brake = Math.Min(1.0, brake / Math.Clamp(SettingsManager.BrakeRange, 0.1, 1.0));
             return true;
         }
 

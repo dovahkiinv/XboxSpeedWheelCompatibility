@@ -203,6 +203,8 @@ namespace WheelCompatibilityConfigurator
         public bool TrySetPedals(bool enabled, string deviceKey, int axis, bool swap, double deadZone)
             => TryInvoke(p => p.SetPedals(enabled, deviceKey, axis, swap, deadZone));
 
+        public bool TrySetPedalsRange(double throttle, double brake) => TryInvoke(p => p.SetPedalsRange(throttle, brake));
+
         public string? TryCalibratePedalsCenter()
         {
             var client = GetClient();
