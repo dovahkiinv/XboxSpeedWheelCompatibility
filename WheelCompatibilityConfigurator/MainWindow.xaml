@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WheelCompatibilityConfigurator"
         mc:Ignorable="d"
-        Title="Xbox Wheel Compatibility" Height="640" Width="440"
-        ResizeMode="CanMinimize">
+        Title="Xbox Wheel Compatibility" Height="860" Width="460"
+        ResizeMode="CanResize" MinWidth="440">
     <Window.Resources>
         <Style x:Key="ButtonDot" TargetType="Border">
             <Setter Property="Width" Value="22" />
@@ -24,8 +24,13 @@
         </Style>
     </Window.Resources>
 
+    <TabControl>
+    <TabItem Header="Main">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -38,7 +43,7 @@
         </Grid.RowDefinitions>
 
         <Label Grid.Row="0"
-               Content="No wheel detected"
+               Content="Searching for wheel..."
                x:Name="ServiceStatusIndicator"
                HorizontalAlignment="Center"
                FontSize="14"
@@ -70,17 +75,18 @@
 
         <Slider Grid.Row="3"
                 x:Name="SensitivitySlider"
-                Minimum="0.1"
+                Minimum="0.01"
                 Maximum="3.0"
                 Value="1.0"
-                TickFrequency="0.1"
+                TickFrequency="0.01"
                 IsSnapToTickEnabled="False"
                 SmallChange="0.05"
                 LargeChange="0.25"
                 ValueChanged="SensitivitySlider_ValueChanged"
                 Margin="0,2,0,4" />
 
-        <Grid Grid.Row="4">
+        <StackPanel Grid.Row="4">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -93,6 +99,73 @@
                        VerticalAlignment="Center" />
             <Button Grid.Column="1" x:Name="ResetButton" Content="Reset" Padding="8,3" Click="ResetButton_Click" />
         </Grid>
+        <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Steering dead zone" Padding="0,2" />
+            <Label Grid.Column="1" x:Name="DeadZoneValueLabel" Content="0.05" MinWidth="40" HorizontalContentAlignment="Right" Padding="0,2" />
+        </Grid>
+        <Slider x:Name="DeadZoneSlider"
+                Minimum="0"
+                Maximum="0.5"
+                Value="0.05"
+                SmallChange="0.01"
+                LargeChange="0.05"
+                ValueChanged="DeadZoneSlider_ValueChanged"
+                Margin="0,2,0,2" />
+        <TextBlock Text="Movement smaller than this around center is ignored. Speed Wheel: ~0.08 recommended."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Rotation angle (lock to lock)" Padding="0,2" />
+            <Label Grid.Column="1" x:Name="RotationValueLabel" Content="180°" MinWidth="50" HorizontalContentAlignment="Right" Padding="0,2" />
+        </Grid>
+        <Slider x:Name="RotationSlider"
+                Minimum="90"
+                Maximum="1080"
+                Value="180"
+                TickFrequency="10"
+                IsSnapToTickEnabled="True"
+                SmallChange="10"
+                LargeChange="90"
+                ValueChanged="RotationSlider_ValueChanged"
+                Margin="0,2,0,2" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2">
+            <Button Content="180°" Padding="6,1" Margin="2" Tag="180" Click="RotationPreset_Click" />
+            <Button Content="270°" Padding="6,1" Margin="2" Tag="270" Click="RotationPreset_Click" />
+            <Button Content="360°" Padding="6,1" Margin="2" Tag="360" Click="RotationPreset_Click" />
+            <Button Content="540°" Padding="6,1" Margin="2" Tag="540" Click="RotationPreset_Click" />
+            <Button Content="900°" Padding="6,1" Margin="2" Tag="900" Click="RotationPreset_Click" />
+            <Button Content="1080°" Padding="6,1" Margin="2" Tag="1080" Click="RotationPreset_Click" />
+        </StackPanel>
+        <TextBlock Text="Like a real wheel: full lock in the game at half of this angle to each side. 180° = full lock at 90° left/right; smaller = full lock sooner."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Calibration: physical turn at full input (per side)" Padding="0,2" />
+            <Label Grid.Column="1" x:Name="PhysicalValueLabel" Content="90°" MinWidth="50" HorizontalContentAlignment="Right" Padding="0,2" />
+        </Grid>
+        <Slider x:Name="PhysicalSlider"
+                Minimum="30"
+                Maximum="540"
+                Value="90"
+                TickFrequency="5"
+                IsSnapToTickEnabled="True"
+                SmallChange="5"
+                LargeChange="15"
+                ValueChanged="PhysicalSlider_ValueChanged"
+                Margin="0,2,0,2" />
+        <TextBlock Text="Turn the wheel until 'Wheel input' shows ±1.00 and set here how many degrees that was. Speed Wheel ≈ 90°."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        </StackPanel>
 
         <Separator Grid.Row="5" Margin="0,10,0,6" />
 
@@ -191,7 +264,7 @@
             </Grid>
 
             <!-- Buttons grid -->
-            <TextBlock Text="Buttons" Margin="0,10,0,2" Foreground="#444" FontSize="11" />
+            <TextBlock Text="Buttons (sent to virtual controller)" Margin="0,10,0,2" Foreground="#444" FontSize="11" />
             <UniformGrid Columns="6" Rows="2" HorizontalAlignment="Center">
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotDPadUp" Style="{StaticResource ButtonDot}" />
@@ -211,11 +284,11 @@
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotPrevGear" Style="{StaticResource ButtonDot}" />
-                    <TextBlock Text="←Gr" Style="{StaticResource ButtonLabel}" />
+                    <TextBlock Text="LB" Style="{StaticResource ButtonLabel}" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotNextGear" Style="{StaticResource ButtonDot}" />
-                    <TextBlock Text="Gr→" Style="{StaticResource ButtonLabel}" />
+                    <TextBlock Text="RB" Style="{StaticResource ButtonLabel}" />
                 </StackPanel>
 
                 <StackPanel HorizontalAlignment="Center">
@@ -244,5 +317,235 @@
                 </StackPanel>
             </UniformGrid>
         </StackPanel>
+        <!-- Device selection / Speed Wheel settings -->
+        <StackPanel Grid.Row="8" Margin="0,10,0,0">
+            <Separator Margin="0,0,0,6" />
+            <Label Content="Device &amp; Speed Wheel" FontWeight="SemiBold" Padding="0" />
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <CheckBox Grid.Row="4" Grid.Column="1" x:Name="HideRealDeviceCheck" Margin="0,6,0,0"
+                          Content="Hide real Speed Wheel / receiver from games (HidHide)"
+                          ToolTip="Games then only see the virtual ViGEm controller. Needs the HidHide driver."
+                          Checked="HideRealDeviceCheck_Changed" Unchecked="HideRealDeviceCheck_Changed" />
+                <CheckBox Grid.Row="6" Grid.Column="1" x:Name="HideXInputCheck" Margin="16,2,0,0" FontSize="11"
+                          Content="Also hide XInput interface (uncheck if a game hangs on start)"
+                          Checked="HideXInputCheck_Changed" Unchecked="HideXInputCheck_Changed" />
+                <TextBlock Grid.Row="5" Grid.Column="1" x:Name="HidHideStatusText" FontSize="11" Foreground="#444" TextWrapping="Wrap" Margin="0,2,0,0" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Virtual output" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="OutputModeCombo" Margin="0,2" SelectionChanged="OutputModeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (ViGEm if installed, else InputInjector)" />
+                    <ComboBoxItem Content="InputInjector only (F1 25 / new games)" />
+                    <ComboBoxItem Content="ViGEm Xbox 360 only (CarX, older games, F1 25)" />
+                    <ComboBoxItem Content="Both" />
+                    <ComboBoxItem Content="None (vJoy wheel only)" />
+                </ComboBox>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Device mode" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="DeviceModeCombo" Margin="0,2" SelectionChanged="DeviceModeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (RacingWheel first, then Speed Wheel)" />
+                    <ComboBoxItem Content="RacingWheel only" />
+                    <ComboBoxItem Content="Xbox 360 Speed Wheel / gamepad only" />
+                </ComboBox>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Steering axis" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SteeringAxisCombo" Margin="0,2" SelectionChanged="SteeringAxisCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (LeftThumbstickX, detect others)" />
+                    <ComboBoxItem Content="LeftThumbstickX" />
+                    <ComboBoxItem Content="RightThumbstickX" />
+                    <ComboBoxItem Content="LeftThumbstickY" />
+                    <ComboBoxItem Content="RightThumbstickY" />
+                </ComboBox>
+                <CheckBox Grid.Row="2" Grid.Column="1" x:Name="InvertSteeringCheck" Content="Invert steering" Margin="0,4"
+                          Checked="InvertSteeringCheck_Changed" Unchecked="InvertSteeringCheck_Changed" />
+            </Grid>
+            <TextBlock Text="Steering / axis settings apply to the Speed Wheel and gamepad modes only."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Raw axis diagnostics -->
+        <StackPanel Grid.Row="9" Margin="0,10,0,0">
+            <Separator Margin="0,0,0,6" />
+            <Label Content="Diagnostics (raw axes)" FontWeight="SemiBold" Padding="0" />
+            <TextBlock x:Name="RawAxesText" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" Text="-" />
+            <TextBlock Text="Turn the wheel fully left/right: the axis that moves is your steering axis." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,4" />
+            <TextBlock Text="Detected devices" Foreground="#444" FontSize="11" />
+            <TextBox x:Name="ScanText" FontFamily="Consolas" FontSize="10" IsReadOnly="True" TextWrapping="Wrap" MinHeight="50" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
+            <TextBlock x:Name="LogPathText" Text="Log file:" FontSize="10" Foreground="#444" Margin="0,6,0,0" TextWrapping="Wrap" />
+            <TextBox x:Name="LogText" FontFamily="Consolas" FontSize="10" IsReadOnly="True" TextWrapping="NoWrap" MinHeight="60" MaxHeight="140"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+        </StackPanel>
     </Grid>
+    </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Pedals">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+                <TextBlock Text="Separate pedals" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
+                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. Pedals are merged with the Speed Wheel triggers (whichever is pressed more wins)." />
+
+                <CheckBox x:Name="PedalsEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold" Content="Use separate pedals"
+                          Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Pedal device" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="PedalsDeviceCombo" Margin="0,2" SelectionChanged="PedalsCombo_SelectionChanged" />
+                    <TextBlock Grid.Row="1" Text="Pedal axis" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="PedalsAxisCombo" Margin="0,2" SelectionChanged="PedalsCombo_SelectionChanged">
+                        <ComboBoxItem Content="X" />
+                        <ComboBoxItem Content="Y (default)" />
+                        <ComboBoxItem Content="Z" />
+                        <ComboBoxItem Content="R (X rotation)" />
+                        <ComboBoxItem Content="U (Y rotation)" />
+                        <ComboBoxItem Content="V" />
+                    </ComboBox>
+                    <CheckBox Grid.Row="2" Grid.Column="1" x:Name="PedalsSwapCheck" Margin="0,4" Content="Swap throttle / brake"
+                              Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Pedal dead zone" />
+                    <TextBlock Grid.Column="1" x:Name="PedalsDeadZoneLabel" Text="0.05" />
+                </Grid>
+                <Slider x:Name="PedalsDeadZoneSlider" Minimum="0" Maximum="0.5" Value="0.05" SmallChange="0.01" LargeChange="0.05"
+                        ValueChanged="PedalsDeadZoneSlider_ValueChanged" Margin="0,2" />
+                <TextBlock Text="Pedal travel smaller than this (from rest) is ignored, the rest is rescaled to 0-100 %." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Throttle: 100 % at pedal travel" />
+                    <TextBlock Grid.Column="1" x:Name="ThrottleRangeLabel" Text="100%" />
+                </Grid>
+                <Slider x:Name="ThrottleRangeSlider" Minimum="0.1" Maximum="1" Value="1" SmallChange="0.05" LargeChange="0.1"
+                        TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="PedalRangeSlider_ValueChanged" Margin="0,2" />
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brake: 100 % at pedal travel" />
+                    <TextBlock Grid.Column="1" x:Name="BrakeRangeLabel" Text="100%" />
+                </Grid>
+                <Slider x:Name="BrakeRangeSlider" Minimum="0.1" Maximum="1" Value="1" SmallChange="0.05" LargeChange="0.1"
+                        TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="PedalRangeSlider_ValueChanged" Margin="0,2" />
+                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                    <Button Content="100%" Padding="6,1" Margin="0,0,4,0" Tag="1.0" Click="PedalRangePreset_Click" />
+                    <Button Content="75%" Padding="6,1" Margin="0,0,4,0" Tag="0.75" Click="PedalRangePreset_Click" />
+                    <Button Content="50%" Padding="6,1" Margin="0,0,4,0" Tag="0.5" Click="PedalRangePreset_Click" />
+                    <TextBlock Text="(both pedals)" VerticalAlignment="Center" FontSize="11" Foreground="Gray" />
+                </StackPanel>
+                <TextBlock Text="50% = full throttle / full brake already when the pedal is pressed halfway." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="PedalsCalibrateButton" Content="Calibrate center" Padding="8,3" Click="PedalsCalibrateButton_Click" />
+                    <TextBlock x:Name="PedalsCenterText" Text="" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" />
+                </StackPanel>
+                <TextBlock Text="Release both pedals and click to store the rest position." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Live" FontWeight="SemiBold" />
+                <Grid Margin="0,4,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="50" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Throttle" VerticalAlignment="Center" />
+                    <ProgressBar Grid.Column="1" x:Name="PedalThrottleBar" Minimum="0" Maximum="1" Height="16" Foreground="#2EA84F" />
+                    <TextBlock Grid.Column="2" x:Name="PedalThrottleText" Text="0%" HorizontalAlignment="Right" FontFamily="Consolas" />
+                </Grid>
+                <Grid Margin="0,4,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="50" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brake" VerticalAlignment="Center" />
+                    <ProgressBar Grid.Column="1" x:Name="PedalBrakeBar" Minimum="0" Maximum="1" Height="16" Foreground="#D62828" />
+                    <TextBlock Grid.Column="2" x:Name="PedalBrakeText" Text="0%" HorizontalAlignment="Right" FontFamily="Consolas" />
+                </Grid>
+                <TextBlock x:Name="PedalsRawText" FontFamily="Consolas" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" Text="-" />
+                <TextBlock Text="Press each pedal: the axis that moves is your pedal axis." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+                <TextBlock x:Name="PedalsStatusText" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Wheel emulation (vJoy)">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+                <TextBlock Text="Virtual steering wheel for games" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
+                           Text="Creates a vJoy DirectInput device that games can bind as a steering wheel: X axis = steering, Y axis = throttle, Z axis = brake (separate pedals), buttons 1-14." />
+
+                <CheckBox x:Name="VJoyEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold"
+                          Content="Enable virtual wheel (vJoy)"
+                          Checked="VJoySettings_Changed" Unchecked="VJoySettings_Changed" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="vJoy device" VerticalAlignment="Center" Width="90" />
+                    <ComboBox x:Name="VJoyDeviceCombo" Width="80" SelectionChanged="VJoyDeviceCombo_SelectionChanged" />
+                </StackPanel>
+
+                <Border Margin="0,10,0,0" Padding="6,4" CornerRadius="3" Background="#F0F0F0" BorderBrush="#B0B0B0" BorderThickness="1">
+                    <TextBlock x:Name="VJoyStatusText" Text="Off" TextWrapping="Wrap" FontSize="11" />
+                </Border>
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Rotation angle of the virtual wheel" FontWeight="SemiBold" />
+                <TextBlock x:Name="VJoyRotationText" Text="Current: 180°" Margin="0,4,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Content="180°" Padding="8,2" Margin="0,0,4,0" Tag="180" Click="RotationPreset_Click" />
+                    <Button Content="270°" Padding="8,2" Margin="0,0,4,0" Tag="270" Click="RotationPreset_Click" />
+                    <Button Content="360°" Padding="8,2" Margin="0,0,4,0" Tag="360" Click="RotationPreset_Click" />
+                    <Button Content="540°" Padding="8,2" Margin="0,0,4,0" Tag="540" Click="RotationPreset_Click" />
+                    <Button Content="900°" Padding="8,2" Margin="0,0,4,0" Tag="900" Click="RotationPreset_Click" />
+                </StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Margin="0,4,0,0"
+                           Text="The full X axis equals half of this angle to each side. With 180° the game gets full lock when you turn the Speed Wheel 90° left/right. If the game has its own 'wheel rotation' / 'steering lock' setting, set it to the same value (180°). Dead zone, calibration and sensitivity from the Main tab are applied too." />
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Setup" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0">
+                    1. Install vJoy (github.com/BrunnerInnovation/vJoy/releases) and reboot.<LineBreak />
+                    2. Open 'Configure vJoy', device 1: enable axes X, Y, Z, set Buttons = 16, POVs = 0, click Apply.<LineBreak />
+                    3. Tick 'Enable virtual wheel (vJoy)' above.<LineBreak />
+                    4. Main tab: set 'Virtual output' to 'None (vJoy wheel only)' so the game does not also see a gamepad, and tick 'Hide real Speed Wheel' (HidHide).<LineBreak />
+                    5. In the game choose the vJoy device and bind: steering = X axis, throttle = Y axis, brake = Z axis, gears = buttons 5/6.
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#8B1A1A" Margin="0,8,0,0"
+                           Text="Note: some games (e.g. official F1 titles) only list wheels they know by name; they may treat vJoy as a generic device where you bind axes manually. CarX and most sims accept any DirectInput wheel." />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"
+                           Text="Buttons: 1 A, 2 B, 3 X, 4 Y, 5 LB (gear down), 6 RB (gear up), 7 Back, 8 Start, 9 LS, 10 RS, 11-14 D-pad up/down/left/right." />
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+    </TabControl>
 </Window>

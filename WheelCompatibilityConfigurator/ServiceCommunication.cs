@@ -119,5 +119,128 @@ namespace WheelCompatibilityConfigurator
                 return null;
             }
         }
+
+        public DeviceStatus? TryGetDeviceStatus()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.GetDeviceStatus();
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
+        public bool TrySetDeadZone(double deadZone) => TryInvoke(p => p.SetDeadZone(deadZone));
+
+        public bool TrySetRotationDegrees(double degrees) => TryInvoke(p => p.SetRotationDegrees(degrees));
+        public bool TrySetPhysicalDegrees(double degrees) => TryInvoke(p => p.SetPhysicalDegrees(degrees));
+        public double? TryGetRotationDegrees() => TryGet(p => p.GetRotationDegrees());
+        public double? TryGetPhysicalDegrees() => TryGet(p => p.GetPhysicalDegrees());
+
+        private double? TryGet(Func<IWheelCompatibilityService, double> getter)
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return getter(client.Proxy);
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
+        public double? TryGetDeadZone()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.GetDeadZone();
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
+        public string? TrySetHideRealDevice(bool hide)
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.SetHideRealDevice(hide);
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
+        public bool TrySetVJoy(bool enabled, int deviceId) => TryInvoke(p => p.SetVJoy(enabled, deviceId));
+        public PedalsStatus? TryGetPedalsStatus()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.GetPedalsStatus(); }
+            catch { Invalidate(); return null; }
+        }
+
+        public bool TrySetPedals(bool enabled, string deviceKey, int axis, bool swap, double deadZone)
+            => TryInvoke(p => p.SetPedals(enabled, deviceKey, axis, swap, deadZone));
+
+        public bool TrySetPedalsRange(double throttle, double brake) => TryInvoke(p => p.SetPedalsRange(throttle, brake));
+
+        public string? TryCalibratePedalsCenter()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.CalibratePedalsCenter(); }
+            catch { Invalidate(); return null; }
+        }
+
+        public string? TrySetHideXInputInterface(bool hide)
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.SetHideXInputInterface(hide); }
+            catch { Invalidate(); return null; }
+        }
+
+        public bool TrySetOutputMode(int mode) => TryInvoke(p => p.SetOutputMode(mode));
+        public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
+        public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));
+        public bool TrySetInvertSteering(bool invert) => TryInvoke(p => p.SetInvertSteering(invert));
+
+        private bool TryInvoke(Action<IWheelCompatibilityService> action)
+        {
+            var client = GetClient();
+            if (client == null) return false;
+
+            try
+            {
+                action(client.Proxy);
+                return true;
+            }
+            catch
+            {
+                Invalidate();
+                return false;
+            }
+        }
     }
 }
