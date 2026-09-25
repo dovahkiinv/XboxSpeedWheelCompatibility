@@ -1,199 +1,205 @@
 # Xbox Wheel Compatibility
 
-Convert a compatible racing wheel into virtual Xbox controller input on Windows, with adjustable steering sensitivity and a live input tester.
+**English** | [Polski](README.pl.md)
 
-This project builds on [Camren Mumme's XboxWheelCompatibility](https://github.com/camren-m/XboxWheelCompatibility). The original MIT license and Git history are preserved.
+Turn a racing wheel – including the **Microsoft Xbox 360 Wireless Speed Wheel** – into a virtual Xbox
+controller or a virtual DirectInput wheel on Windows, with rotation angle, dead zone, sensitivity,
+separate pedals support and live diagnostics.
+
+This project builds on [Camren Mumme's XboxWheelCompatibility](https://github.com/camren-m/XboxWheelCompatibility).
+The original MIT license and Git history are preserved.
 
 ## Features
 
-- Wheel steering maps to the left stick; throttle and brake map to the right and left triggers.
-- D-pad, gear paddles, and six wheel buttons map to Xbox controller buttons.
-- Adjustable steering sensitivity from 0.01 to 3.00 and a steering dead zone, saved across service restarts.
-- Side-by-side rotating wheel displays compare raw input and adjusted output.
-- Live pedal bars, button indicators, connection status, and injection diagnostics.
-- .NET 8 service and WPF configurator, with service-offline handling and reduced polling overhead.
-- **Xbox 360 Wireless Speed Wheel support** (via the Xbox 360 Wireless Receiver for Windows), with automatic device selection: a real RacingWheel is used first, otherwise the Speed Wheel.
-- Raw-axis diagnostics, selectable steering axis, invert option, and a diagnostic log file for checking your hardware.
+- **Input devices** (automatic selection):
+  1. real wheels exposed by Windows as `RacingWheel` (original behaviour),
+  2. **Xbox 360 Wireless Speed Wheel** via XInput (Xbox 360 Wireless Receiver for Windows),
+  3. wireless Xbox 360 controllers as a fallback.
+- **Virtual outputs**:
+  - **ViGEm** virtual Xbox 360 controller – seen by XInput, DirectInput and modern games,
+  - **InputInjector** (built into Windows) – only modern Windows.Gaming.Input / GameInput games,
+  - **vJoy** virtual DirectInput wheel – X = steering, Y = throttle, Z = brake, 14 buttons.
+- **Steering**: rotation angle 90°–1080° (like a real wheel), physical-turn calibration, dead zone,
+  sensitivity curve 0.01–3.00, invert, selectable steering axis.
+- **Separate pedals** (any extra DirectInput joystick, e.g. an old wheel's pedal unit): combined
+  single-axis pedals, dead zone, "100 % at X % travel" per pedal, center calibration, swap.
+- **Hide the real wheel from games** with HidHide, so games only see the virtual device.
+- **Diagnostics**: live wheel/pedal/button tester, raw axes, detected devices list, `Output.log`.
+- Settings are saved in `%ProgramData%\XboxWheelCompatibility\settings.json`.
 
 ## Requirements
 
-- Windows 10 22H2 or Windows 11, x64.
-- The installer includes the .NET runtime. Developers need the .NET 8 SDK.
-- A wheel recognized by Windows.Gaming.Input.RacingWheel. The original project lists the Thrustmaster Ferrari 458 Spider Racing Wheel as tested.
-- Xbox Accessory Management Service (XboxGipSvc) available and enabled.
-
-Compatibility depends on the wheel's drivers and the game. Clutch and handbrake are displayed in the tester but are not mapped to gamepad output.
-
-## Xbox 360 Wireless Speed Wheel
-
-Windows does not expose the Speed Wheel as `Windows.Gaming.Input.RacingWheel`; it shows up as
-`Controller (Xbox 360 Wireless Receiver for Windows)`. The service now finds devices in this order
-(**Device mode = Auto**):
-
-1. a real wheel from `RacingWheel.RacingWheels` (original behaviour, unchanged),
-2. an XInput device whose sub type is *Wheel* (`XINPUT_DEVSUBTYPE_WHEEL`) – the Speed Wheel,
-3. a wireless / Xbox 360 receiver controller from `Gamepad.Gamepads` (fallback). Wired and virtual
-   controllers are ignored so the virtual controller created by this app is never read back.
-
-Speed Wheel mapping sent to the virtual Xbox controller:
-
-| Speed Wheel | Virtual controller |
+| Component | Needed for |
 | --- | --- |
-| Steering (LeftThumbstickX by default, selectable) | Left stick X (with sensitivity curve) |
-| Right trigger | Right trigger (throttle) |
-| Left trigger | Left trigger (brake) |
-| LB / RB | LB / RB (gear down / up) |
-| A / B / X / Y, D-pad, Start, Back | same buttons (Start = Menu, Back = View) |
+| Windows 10 22H2 / Windows 11, x64 | always |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (or newer SDK) | building |
+| [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) | running published builds |
+| Xbox 360 Wireless Receiver for Windows | Speed Wheel |
+| [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) | ViGEm output (recommended) |
+| [HidHide](https://github.com/nefarius/HidHide/releases) | hiding the real wheel (optional) |
+| [vJoy](https://github.com/BrunnerInnovation/vJoy/releases) | virtual wheel output (optional) |
 
-XInput is used instead of DirectInput/Raw Input: the joy.cpl axes *Z axis / X rotation / Y rotation*
-are just the legacy DirectInput view of the same XInput data (Z = both triggers combined).
-
-### Checking the axes on your hardware
-
-The Speed Wheel support has **not been tested on physical hardware by the author of this change**.
-Use the built-in diagnostics:
-
-1. Open the configurator. The header shows e.g. `Speed Wheel connected: Xbox 360 Wireless Speed Wheel (XInput slot 0)`.
-2. In **Diagnostics (raw axes)** turn the wheel fully left and right and watch `LX / LY / RX / RY`.
-3. *Steering axis = Auto* uses LeftThumbstickX; if LX never moves but another axis does, Auto switches to it.
-   You can also pick the axis manually, and tick **Invert steering** if left/right are swapped.
-4. *Detected devices* lists every RacingWheel, XInput slot (with sub type) and Gamepad Windows reports.
-5. The service writes `Output.log` next to `WheelCompatibilityService.exe` (fresh on every start).
-6. Everything is also written to `%ProgramData%\XboxWheelCompatibility\diagnostics.log`
-   (device changes and axis values every 2 s when they change). Attach this file when reporting problems.
-
-### Virtual output: ViGEm vs InputInjector
-
-| Output | Seen by |
-| --- | --- |
-| **ViGEm Xbox 360** (needs the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus/releases)) | XInput and DirectInput games (CarX Drift Racing, older F1 titles) and Windows.Gaming.Input / GameInput games (F1 25) |
-| **InputInjector** (built into Windows) | only Windows.Gaming.Input / GameInput games |
-
-*Virtual output = Auto* uses ViGEm when the driver is installed, otherwise InputInjector. The ViGEm
-controller is wired, so the service never reads it back as an input device.
-
-### Hiding the real wheel from games (HidHide)
-
-Games also see the real Speed Wheel (as "Steering Wheel" and "Controller (Xbox 360 Wireless Receiver
-for Windows)"), which can double the input or make the game ignore your settings. Install
-[HidHide](https://github.com/nefarius/HidHide/releases), reboot, then tick **Hide real Speed Wheel /
-receiver from games** in the configurator. The service whitelists itself in HidHide, hides every device
-node of the Xbox 360 receiver (VID_045E&PID_0719 – all controllers on that receiver) and turns cloaking on.
-The receiver's root node is never hidden (hiding it made games such as CarX hang on start). If a game
-still hangs, untick *Also hide XInput interface* so only the HID/DirectInput view is hidden.
-Unticking it, or stopping the service normally, unhides them again. If the service ever crashes while
-hiding is on, run `"C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off`
-or open HidHide Configuration Client and untick the devices.
-
-### Separate pedals
-
-The **Pedals** tab reads any extra DirectInput joystick (e.g. an old wheel's pedal unit shown as
-"Steering Wheel" in joy.cpl) through WinMM. Combined pedals on a single axis are supported: rest =
-center, one pedal moves the axis up (throttle), the other down (brake) – use *Swap* if reversed.
-Pick the device and axis, set the pedal dead zone and the pedal range (e.g. 50 % = full throttle/brake
-at half pedal travel, separately for each pedal), release the pedals and click *Calibrate center*.
-Pedal values are merged with the Speed Wheel triggers. HidHide only hides Microsoft (VID_045E)
-receiver devices, so the pedals stay visible to the service.
-
-### Virtual steering wheel (vJoy)
-
-The **Wheel emulation (vJoy)** tab outputs a DirectInput device that games can bind as a wheel:
-X = steering, Y = throttle, Z = brake, buttons 1–14. The X axis follows the *Rotation angle*
-(180° = full lock at 90° to each side). Install [vJoy](https://github.com/BrunnerInnovation/vJoy/releases),
-enable axes X/Y/Z and 16 buttons for device 1 in *Configure vJoy*, then tick *Enable virtual wheel*.
-Set *Virtual output* to *None (vJoy wheel only)* and hide the real receiver with HidHide so the game sees
-only the wheel. Games with a fixed list of supported wheels may treat vJoy as a generic device.
-
-### F1 25 notes
-
-- The game also sees the original Speed Wheel as a normal Xbox controller, so it may receive input from
-  both the real and the virtual controller. In the game choose the virtual controller's profile, or
-  unbind the duplicated controls, if input looks doubled.
-- The virtual controller is a gamepad, so use the game's gamepad presets and adjust steering
-  linearity/saturation there if needed.
+Reboot after installing ViGEmBus, HidHide or vJoy.
 
 ## Build
 
-From PowerShell in this folder:
+In PowerShell, in the repository folder:
 
 ```powershell
-# Compile the service and configurator
-.\build.ps1
-
-# Create runnable Windows x64 builds
+git clone https://github.com/dovahkiinv/XboxSpeedWheelCompatibility.git
+cd XboxSpeedWheelCompatibility
 .\build.ps1 -Publish
 ```
 
-Requirements for building: Windows 10/11 x64 and the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-(Visual Studio 2022 17.8+ also works – open `XboxWheelCompatibility.sln`). Manual equivalent:
+Output: `publish\Service` and `publish\Configurator`. Close the running service and configurator
+before building – otherwise Windows locks the `.exe` (the script warns about this).
+
+Manual equivalent:
 
 ```powershell
 dotnet publish WheelCompatibilityService/WheelCompatibilityService.csproj -c Release -r win-x64 --self-contained false -o publish/Service
 dotnet publish WheelCompatibilityConfigurator/WheelCompatibilityConfigurator.csproj -c Release -r win-x64 --self-contained false -o publish/Configurator
 ```
 
-To install a self-built service (Administrator PowerShell):
+## Run
+
+1. If an older version is installed as a Windows service, stop it (both use TCP port 16581):
+   ```powershell
+   Get-Service *Wheel* | Stop-Service -Force
+   Get-Service *Wheel* | Set-Service -StartupType Manual
+   ```
+2. Start the service from an **Administrator** PowerShell and keep the window open:
+   ```powershell
+   .\publish\Service\WheelCompatibilityService.exe
+   ```
+3. Start the configurator in a second window:
+   ```powershell
+   .\publish\Configurator\WheelCompatibilityConfigurator.exe
+   ```
+4. Stop the service with **Ctrl+C** (not the window's X) – this also un-hides the real wheel.
+
+Optional – install as a Windows service (Administrator):
 
 ```powershell
 sc.exe create WheelCompatibilityService binPath= "$PWD\publish\Service\WheelCompatibilityService.exe" start= auto
 sc.exe start WheelCompatibilityService
 ```
 
-To test without installing, run `publish\Service\WheelCompatibilityService.exe` from an Administrator terminal
-and then start `publish\Configurator\WheelCompatibilityConfigurator.exe`. If an older version is installed,
-stop it first (`sc.exe stop WheelCompatibilityService`) – both use TCP port 16581, and the service and
-configurator must come from the same build.
+> The legacy MSI installer (`build-installer.ps1`, WiX projects) is kept for reference only and does
+> not include the Speed Wheel features.
 
-Published files appear in `publish/Service` and `publish/Configurator`. These builds require the .NET 8 Desktop Runtime; keep each output folder's files together.
+## Configurator tabs
 
-The GitHub Actions workflow builds both apps and uploads the published folders as a downloadable artifact. The legacy WiX installer projects remain in the solution for reference; the build script deliberately builds the application projects directly because the installers still reference .NET 6 prerequisites.
+### Main
 
-## Install and run
+| Setting | Description |
+| --- | --- |
+| Steering sensitivity | `1.00` = linear, below = gentler near center, above = twitchier. Curve: `sign(x)·abs(x)^(1/s)` |
+| Steering dead zone | 0.00–0.50. Speed Wheel drifts about ±0.07 at rest → **0.08** recommended |
+| Rotation angle | 90°–1080° lock to lock. Full lock in the game at half of it per side (180° → full lock at 90°) |
+| Calibration | how many degrees you physically turn the wheel when input shows ±1.00 (Speed Wheel ≈ 90°) |
+| Device mode | Auto (RacingWheel first, then Speed Wheel) / RacingWheel only / Speed Wheel only |
+| Steering axis | Auto (LeftThumbstickX, detects others) / LX / RX / LY / RY |
+| Invert steering | swap left/right |
+| Virtual output | Auto (ViGEm if installed, else InputInjector) / InputInjector / ViGEm / Both / None (vJoy only) |
+| Hide real Speed Wheel | hides the real receiver devices from games via HidHide |
+| Also hide XInput interface | untick if a game hangs on start while hiding is on |
 
-1. Download the `.msi` installer from the [latest release](https://github.com/AbhiPoluri/XboxWheelCompatibility/releases/latest).
-2. Double-click it, follow the setup wizard, and approve the Windows administrator prompt.
-3. Open **Xbox Wheel Compatibility** from the Start menu and connect your wheel.
+Processing order: dead zone → rotation angle → sensitivity.
 
-Setup includes the .NET runtime, registers and starts the wheel service, and creates a Start menu shortcut. No terminal commands or separate runtime installation are needed. Future MSI versions upgrade the installed application. Close the configurator before upgrading.
+Speed Wheel → virtual controller mapping:
 
-The installer uses Windows Installer's service management and rollback support. Existing settings are preserved. The installer is currently unsigned.
+| Speed Wheel | Output |
+| --- | --- |
+| Steering | Left stick X / vJoy X |
+| Right trigger | Right trigger (throttle) / vJoy Y |
+| Left trigger | Left trigger (brake) / vJoy Z |
+| LB / RB | LB / RB (gear down / up) / vJoy buttons 5 / 6 |
+| A, B, X, Y, D-pad, Start, Back | same buttons (Start = Menu, Back = View) |
 
-To build the installer from source, run `./build-installer.ps1` in PowerShell. This installs a pinned WiX build tool under the ignored `artifacts` directory and writes the MSI there.
+### Pedals
 
-## Steering sensitivity and dead zone
+For an extra pedal set (e.g. shown as "Steering Wheel" in joy.cpl):
 
-- Rotation angle (`90°`–`1080°` lock to lock, default `180°`, presets 180/270/360/540/900/1080): like on a real wheel, full lock in the game is reached at half this angle to each side. Example: with 180° you get full lock at 90° left/right; with 90° already at 45°.
-- Calibration – physical turn at full input (default `90°` per side): how far the wheel is physically turned when it reports ±1.00. The Speed Wheel is a tilt/motion wheel reaching ±1.00 at roughly 90°; adjust if your measurement differs.
-- Dead zone (`0.00`–`0.50`, default `0.05`): steering inside it is sent as 0, the rest is rescaled so full lock is still 100 %. The Speed Wheel drifts about ±0.07 at rest, so `0.08` is a good start.
+1. Press each pedal and watch the raw axes – the one that moves is your pedal axis (usually **Y**).
+2. Select the device and axis, release both pedals, click **Calibrate center**.
+3. Tick **Use separate pedals**; tick **Swap throttle / brake** if reversed.
+4. Set **Pedal dead zone** and **Throttle / Brake: 100 % at pedal travel** (e.g. 50 % = full at half press).
 
-- `1.00`: linear steering.
-- Below `1.00`: gentler steering near the center.
-- Above `1.00`: stronger steering near the center.
+Pedals are merged with the Speed Wheel triggers (the stronger one wins).
 
-The output curve is `sign(input) * abs(input)^(1 / sensitivity)`. Changes are sent to the running service and saved in `%ProgramData%\XboxWheelCompatibility\settings.json`. Wheel display rotation is a visualization, not hardware steering-angle calibration.
+> **Combined pedals limitation:** many older pedal units report both pedals on **one axis** (throttle up,
+> brake down). Pressing both at once cancels out in the hardware – this cannot be fixed in software.
+
+### Wheel emulation (vJoy)
+
+1. Install vJoy, reboot, open **Configure vJoy** → device 1: axes **X, Y, Z**, **Buttons 16**, **POVs 0**, Apply.
+2. Tick **Enable virtual wheel (vJoy)**.
+3. Main tab: *Virtual output* = **None (vJoy wheel only)** and tick *Hide real Speed Wheel*.
+4. In the game bind: steering = X, throttle = Y, brake = Z, gears = buttons 5/6.
+
+vJoy buttons: 1 A, 2 B, 3 X, 4 Y, 5 LB, 6 RB, 7 Back, 8 Start, 9 LS, 10 RS, 11–14 D-pad.
+
+> Games with a fixed list of supported wheels (e.g. official F1 titles) identify wheels by hardware
+> VID/PID and may not accept vJoy as a wheel. Use the ViGEm output for those games – rotation angle,
+> dead zone and sensitivity still apply.
+
+## Recommended settings (Speed Wheel)
+
+| Where | Setting | Value |
+| --- | --- | --- |
+| App | Sensitivity | 1.00 |
+| App | Dead zone | 0.08 |
+| App | Rotation angle | 180° |
+| App | Calibration | 90° |
+| Game | Steering dead zone / saturation / linearity | 0 |
+
+## Game notes
+
+| Game | Recommended output | Notes |
+| --- | --- | --- |
+| F1 25 | ViGEm (or InputInjector) | Choose the Xbox controller profile, set game dead zone to 0 |
+| F1 2018 / older F1 | ViGEm | vJoy is not recognised as a wheel |
+| CarX Drift Racing Online | ViGEm or vJoy | If the game hangs on load with HidHide on, untick *Also hide XInput interface* or disable hiding |
+
+If the game sees both the real and the virtual controller, input can be doubled – enable HidHide
+hiding or choose the virtual controller in the game's settings.
+
+## Diagnostics
+
+- The service writes `Output.log` next to `WheelCompatibilityService.exe` (recreated on every start):
+  detected devices, XInput slots, chosen device, outputs, HidHide/vJoy/pedal actions, axis values every 2 s.
+- A rolling copy: `%ProgramData%\XboxWheelCompatibility\diagnostics.log`.
+- The Speed Wheel reports an unusual XInput sub type (`0x52`) – it is detected as a wireless
+  non-gamepad XInput device.
 
 ## Troubleshooting
 
-**Service unreachable:** Check that WheelCompatibilityService is running and that the service and configurator were published from the same version. Communication uses TCP port 16581 on the local machine.
+| Problem | Fix |
+| --- | --- |
+| `Service unreachable` | Start the service as Administrator; service and configurator must come from the same build |
+| `SocketException 10048` in `Output.log` | Port 16581 is used by an older copy: `Get-Service *Wheel* \| Stop-Service -Force` |
+| Build: `Access to ... WheelCompatibilityService.exe is denied` | The service is still running – stop it with Ctrl+C |
+| "No wheel connected" | Check *Detected devices* and *Device mode*; send `Output.log` |
+| Wrong steering direction | Tick *Invert steering* or change *Steering axis* |
+| Game hangs on load | Disable hiding: `& "C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off` |
+| Wheel/pedals invisible after a crash | Same command as above, or untick devices in HidHide Configuration Client |
+| Injection error `0x80070422` (InputInjector) | Services → *Xbox Accessory Management Service* → Manual → Start |
 
-**Wheel connected but no controller input:** Check the injection status. If error `0x80070422` appears, open Windows **Services**, find **Xbox Accessory Management Service**, set its startup type to **Manual**, and start it. Then restart **Wheel Compatibility Service** using the same window.
+## Testing status
 
-**No wheel connected:** Check USB connectivity and driver support. The app sees wheels exposed through Windows.Gaming.Input.RacingWheel, XInput devices with the *Wheel* sub type (Xbox 360 Speed Wheel), and wireless Xbox 360 controllers. Check *Detected devices* and *Device mode* in the configurator.
-
-**Speed Wheel steers the wrong way / not at all:** Change *Steering axis* or tick *Invert steering*, and check `diagnostics.log`.
-
-## Uninstall
-
-Open **Windows Settings > Apps > Installed apps**, select **Xbox Wheel Compatibility**, and choose **Uninstall**. Setup removes the service, application files, and shortcut. Settings remain in `%ProgramData%\XboxWheelCompatibility`.
+Tested by the user with an Xbox 360 Wireless Speed Wheel on Windows 11: Speed Wheel detection,
+axes, ViGEm output, HidHide hiding and vJoy output work. F1 2018 does not accept vJoy as a wheel.
+The developer did not test the code on physical hardware – please report issues with `Output.log`.
 
 ## Project layout
 
 | Folder | Purpose |
 | --- | --- |
-| WheelTransformer | Device detection (RacingWheel / XInput Speed Wheel / Gamepad), sensitivity curve, gamepad injection, diagnostics log |
-| WheelCompatibilityService | Windows service and configuration endpoint |
-| WheelCompatibilityConfigurator | Desktop controls and live tester |
-| CommunicationEnums | Shared service contracts and diagnostic snapshots |
+| WheelTransformer | Device detection, XInput, pedals, steering curve, ViGEm/InputInjector/vJoy output, HidHide, logging |
+| WheelCompatibilityService | Service host and TCP configuration endpoint (port 16581) |
+| WheelCompatibilityConfigurator | WPF configurator (Main, Pedals, Wheel emulation tabs) |
+| CommunicationEnums | Shared service contract and status objects |
 | WheelCompatibilityInstaller / WheelCompatibilitySetup | Legacy WiX installer sources |
 
 ## License
