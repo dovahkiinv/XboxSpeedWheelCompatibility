@@ -55,6 +55,16 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             SettingsManager.DeadZone = DeadZone;
         }
 
+        public double GetSteeringRange()
+        {
+            return SettingsManager.SteeringRange;
+        }
+
+        public void SetSteeringRange(double Range)
+        {
+            SettingsManager.SteeringRange = Range;
+        }
+
         public DeviceStatus GetDeviceStatus()
         {
             return new DeviceStatus

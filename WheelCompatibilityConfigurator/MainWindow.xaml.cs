@@ -167,6 +167,15 @@ namespace WheelCompatibilityConfigurator
                 SuppressSliderEvent = false;
             }
 
+            double? range = await Task.Run(() => ServiceCommunicator.TryGetSteeringRange());
+            if (range.HasValue)
+            {
+                SuppressSliderEvent = true;
+                SteeringRangeSlider.Value = range.Value;
+                SteeringRangeValueLabel.Content = ((int)Math.Round(range.Value * 100)).ToString() + "%";
+                SuppressSliderEvent = false;
+            }
+
             double? sensitivity = await Task.Run(() => ServiceCommunicator.TryGetSensitivity());
             if (!sensitivity.HasValue) return;
 
@@ -313,6 +322,16 @@ namespace WheelCompatibilityConfigurator
             if (SuppressSliderEvent || !IsLoaded) return;
 
             _ = Task.Run(() => ServiceCommunicator.TrySetDeadZone(value));
+        }
+
+        private void SteeringRangeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (SteeringRangeValueLabel == null) return;
+            double value = Math.Round(e.NewValue, 2);
+            SteeringRangeValueLabel.Content = ((int)Math.Round(value * 100)).ToString() + "%";
+            if (SuppressSliderEvent || !IsLoaded) return;
+
+            _ = Task.Run(() => ServiceCommunicator.TrySetSteeringRange(value));
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)

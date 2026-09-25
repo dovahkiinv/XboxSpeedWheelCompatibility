@@ -12,6 +12,9 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const double MinDeadZone = 0.0;
         public const double MaxDeadZone = 0.5;
         public const double DefaultDeadZone = 0.05;
+        public const double MinSteeringRange = 0.2;
+        public const double MaxSteeringRange = 1.0;
+        public const double DefaultSteeringRange = 1.0;
 
         private static readonly object FileLock = new();
         public static readonly string SettingsDirectory = Path.Combine(
@@ -34,6 +37,16 @@ namespace XboxWheelCompatibility.WheelTransformer
         {
             get { EnsureLoaded(); return _data.DeadZone; }
             set => Update(d => d.DeadZone = Math.Clamp(value, MinDeadZone, MaxDeadZone));
+        }
+
+        /// <summary>
+        /// Fraction of the physical steering travel that produces full lock (1.0 = whole range,
+        /// 0.5 = full lock already at half of the wheel's travel).
+        /// </summary>
+        public static double SteeringRange
+        {
+            get { EnsureLoaded(); return _data.SteeringRange; }
+            set => Update(d => d.SteeringRange = Math.Clamp(value, MinSteeringRange, MaxSteeringRange));
         }
 
         public static DeviceSelectionMode DeviceMode
@@ -94,6 +107,7 @@ namespace XboxWheelCompatibility.WheelTransformer
 
                 data.Sensitivity = Math.Clamp(data.Sensitivity, MinSensitivity, MaxSensitivity);
                 data.DeadZone = Math.Clamp(data.DeadZone, MinDeadZone, MaxDeadZone);
+                data.SteeringRange = Math.Clamp(data.SteeringRange, MinSteeringRange, MaxSteeringRange);
                 if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
                 if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
                 _data = data;
@@ -122,6 +136,7 @@ namespace XboxWheelCompatibility.WheelTransformer
         {
             public double Sensitivity { get; set; } = DefaultSensitivity;
             public double DeadZone { get; set; } = DefaultDeadZone;
+            public double SteeringRange { get; set; } = DefaultSteeringRange;
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;

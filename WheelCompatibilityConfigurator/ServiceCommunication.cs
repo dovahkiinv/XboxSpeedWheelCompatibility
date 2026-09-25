@@ -138,6 +138,24 @@ namespace WheelCompatibilityConfigurator
 
         public bool TrySetDeadZone(double deadZone) => TryInvoke(p => p.SetDeadZone(deadZone));
 
+        public bool TrySetSteeringRange(double range) => TryInvoke(p => p.SetSteeringRange(range));
+
+        public double? TryGetSteeringRange()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.GetSteeringRange();
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
         public double? TryGetDeadZone()
         {
             var client = GetClient();

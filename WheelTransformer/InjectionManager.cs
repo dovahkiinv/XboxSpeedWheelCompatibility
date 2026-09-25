@@ -73,12 +73,11 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static double ApplySensitivity(double wheelValue)
         {
             double deadZone = SettingsManager.DeadZone;
-            if (deadZone > 0)
-            {
-                double mag = Math.Abs(wheelValue);
-                if (mag <= deadZone) return 0.0;
-                wheelValue = Math.Sign(wheelValue) * Math.Min(1.0, (mag - deadZone) / (1.0 - deadZone));
-            }
+            double range = Math.Max(SettingsManager.SteeringRange, deadZone + 0.05);
+            double mag = Math.Abs(wheelValue);
+            if (mag <= deadZone) return 0.0;
+            // Map [deadZone .. range] of physical travel to [0 .. 1] output; beyond range = full lock.
+            wheelValue = Math.Sign(wheelValue) * Math.Min(1.0, (mag - deadZone) / (range - deadZone));
 
             double sensitivity = SettingsManager.Sensitivity;
             if (sensitivity <= 0) return wheelValue;
