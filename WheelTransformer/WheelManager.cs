@@ -96,21 +96,31 @@ namespace XboxWheelCompatibility.WheelTransformer
                 name = SafeName(RawGameController.FromGameController(wheel), "Racing wheel");
             }
 
-            // 2. XInput slots
-            int firstXInputWheel = -1;
+            // 2. XInput slots.
+            // Score: 3 = sub type Wheel (0x02); 2 = wireless, non-gamepad sub type (the Speed Wheel was seen
+            // reporting 0x52 through the Xbox 360 Wireless Receiver); 1 = any wireless XInput device.
+            // Wired devices are ignored so our own virtual controller is never read back.
+            int bestXInput = -1, bestScore = 0;
+            byte bestSubType = 0;
             for (int i = 0; i < XInputNative.MaxControllers; i++)
             {
                 if (!XInputNative.TryGetCapabilities(i, out var caps)) continue;
-                scan.Add($"XInput slot {i}: type=0x{caps.Type:X2} subtype={XInputNative.SubTypeName(caps.SubType)} flags=0x{caps.Flags:X4}");
-                if (caps.SubType == XInputNative.SubTypeWheel && firstXInputWheel < 0) firstXInputWheel = i;
+                bool wireless = (caps.Flags & XInputNative.CapsWireless) != 0;
+                int score = caps.SubType == XInputNative.SubTypeWheel ? 3
+                    : wireless && caps.SubType != XInputNative.SubTypeGamepad ? 2
+                    : wireless ? 1 : 0;
+                scan.Add($"XInput slot {i}: type=0x{caps.Type:X2} subtype={XInputNative.SubTypeName(caps.SubType)} flags=0x{caps.Flags:X4} wireless={wireless} score={score}");
+                if (score > bestScore) { bestScore = score; bestXInput = i; bestSubType = caps.SubType; }
             }
             if (!XInputNative.Available) scan.Add("XInput unavailable: " + XInputNative.LoadError);
 
-            if (kind == InputDeviceKind.None && mode != DeviceSelectionMode.RacingWheelOnly && firstXInputWheel >= 0)
+            if (kind == InputDeviceKind.None && mode != DeviceSelectionMode.RacingWheelOnly && bestXInput >= 0)
             {
                 kind = InputDeviceKind.XInputSpeedWheel;
-                xinputIndex = firstXInputWheel;
-                name = $"Xbox 360 Wireless Speed Wheel (XInput slot {firstXInputWheel})";
+                xinputIndex = bestXInput;
+                name = bestScore >= 2
+                    ? $"Xbox 360 Wireless Speed Wheel (XInput slot {bestXInput}, subtype 0x{bestSubType:X2})"
+                    : $"Xbox 360 wireless controller (XInput slot {bestXInput})";
             }
 
             // 3. Gamepad fallback

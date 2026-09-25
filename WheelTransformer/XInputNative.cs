@@ -28,6 +28,8 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const byte SubTypeGuitarBass = 0x0B;
         public const byte SubTypeArcadePad = 0x13;
 
+        public const ushort CapsWireless = 0x0002;
+
         // XINPUT_GAMEPAD button bits
         public const ushort DPadUp = 0x0001;
         public const ushort DPadDown = 0x0002;
