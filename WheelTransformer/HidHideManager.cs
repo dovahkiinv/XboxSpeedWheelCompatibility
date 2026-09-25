@@ -15,7 +15,74 @@ namespace XboxWheelCompatibility.WheelTransformer
     public static class HidHideManager
     {
         // Xbox 360 Wireless Receiver for Windows. NOT the ViGEm pad (VID_045E&PID_028E).
-        private static readonly string[] DeviceIdPatterns = { "VID_045E&PID_0719", "VID_045E&PID_0291", "VID_045E&PID_02A9" };
+        // 0719/0291/02A9 = receiver, 02A1 = wireless device connected through the receiver (the Speed Wheel).
+        private static readonly string[] DeviceIdPatterns = { "VID_045E&PID_0719", "VID_045E&PID_0291", "VID_045E&PID_02A9", "VID_045E&PID_02A1" };
+        private static readonly string[] NamePatterns = { "Steering Wheel", "Xbox 360 Wireless", "Wireless Receiver", "Speed Wheel" };
+        // Never hide our own ViGEm controller.
+        private static readonly string[] ExcludePatterns = { "PID_028E", "ViGEm", "XBOX 360 For Windows" };
+
+        private static bool IsReceiverRelated(string text)
+        {
+            if (ExcludePatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase))) return false;
+            return DeviceIdPatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase))
+                || NamePatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Parses "HidHideCLI --dev-gaming" JSON and returns the HID instance paths and their USB base
+        /// containers for receiver devices (XInput devices need both hidden).
+        /// </summary>
+        private static List<string> FindFromHidHide(string cli)
+        {
+            var result = new List<string>();
+            var (code, output) = Run(cli, "--dev-gaming");
+            DiagnosticsLog.Write($"HidHide: dev-gaming -> {code}{Environment.NewLine}{output}");
+            int start = output.IndexOf('[');
+            if (start < 0) return result;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(output.Substring(start));
+                Walk(doc.RootElement, "", result);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Write("HidHide: could not parse dev-gaming output: " + ex.Message);
+            }
+            return result;
+        }
+
+        private static void Walk(System.Text.Json.JsonElement e, string parentName, List<string> result)
+        {
+            if (e.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in e.EnumerateArray()) Walk(item, parentName, result);
+                return;
+            }
+            if (e.ValueKind != System.Text.Json.JsonValueKind.Object) return;
+
+            string name = parentName;
+            if (e.TryGetProperty("friendlyName", out var fn) && fn.ValueKind == System.Text.Json.JsonValueKind.String)
+                name = fn.GetString() ?? parentName;
+
+            if (e.TryGetProperty("deviceInstancePath", out var dip) && dip.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                string path = dip.GetString() ?? "";
+                string basePath = e.TryGetProperty("baseContainerDeviceInstancePath", out var b) && b.ValueKind == System.Text.Json.JsonValueKind.String ? b.GetString() ?? "" : "";
+                string desc = e.TryGetProperty("description", out var d) && d.ValueKind == System.Text.Json.JsonValueKind.String ? d.GetString() ?? "" : "";
+                string all = name + " | " + desc + " | " + path + " | " + basePath;
+                if (IsReceiverRelated(all))
+                {
+                    if (path.Length > 0) result.Add(path);
+                    if (basePath.Length > 0 && !basePath.Contains("PID_028E", StringComparison.OrdinalIgnoreCase)) result.Add(basePath);
+                }
+            }
+
+            foreach (var prop in e.EnumerateObject())
+            {
+                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array || prop.Value.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    Walk(prop.Value, name, result);
+            }
+        }
 
         private static readonly object Lock = new();
         private static readonly List<string> HiddenByUs = new();
@@ -53,14 +120,20 @@ namespace XboxWheelCompatibility.WheelTransformer
         /// <summary>Instance IDs of all present devices belonging to the Xbox 360 receiver (HID and USB/XUSB nodes).</summary>
         private static List<string> FindReceiverInstanceIds()
         {
-            string filter = string.Join("|", DeviceIdPatterns);
-            string script = "Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '" + filter + "' } | ForEach-Object { $_.InstanceId }";
+            // Lists "InstanceId<TAB>FriendlyName<TAB>Class" of every present device; filter in C#.
+            string script = "Get-PnpDevice -PresentOnly | ForEach-Object { $_.InstanceId + [char]9 + $_.FriendlyName + [char]9 + $_.Class }";
             var (_, output) = Run("powershell.exe", "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"" + script + "\"");
-            return output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(l => l.Trim())
-                .Where(l => DeviceIdPatterns.Any(p => l.Contains(p, StringComparison.OrdinalIgnoreCase)))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var ids = new List<string>();
+            var log = new System.Text.StringBuilder("HidHide: receiver-related PnP devices:");
+            foreach (var raw in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var line = raw.Trim();
+                if (!IsReceiverRelated(line)) continue;
+                log.Append(Environment.NewLine).Append("    ").Append(line);
+                ids.Add(line.Split('\t')[0].Trim());
+            }
+            DiagnosticsLog.Write(log.ToString());
+            return ids.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         public static string Enable()
@@ -82,7 +155,11 @@ namespace XboxWheelCompatibility.WheelTransformer
                     var reg = Run(cli, $"--app-reg \"{self}\"");
                     DiagnosticsLog.Write($"HidHide: app-reg {self} -> {reg.code} {reg.output}");
 
-                    var ids = FindReceiverInstanceIds();
+                    var ids = FindReceiverInstanceIds()
+                        .Concat(FindFromHidHide(cli))
+                        .Where(id => !ExcludePatterns.Any(x => id.Contains(x, StringComparison.OrdinalIgnoreCase)))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
                     if (ids.Count == 0)
                     {
                         Status = "No Xbox 360 receiver devices found to hide.";
@@ -99,7 +176,7 @@ namespace XboxWheelCompatibility.WheelTransformer
                     DiagnosticsLog.Write($"HidHide: cloak-on -> {on.code} {on.output}");
 
                     Active = ids.Count > 0;
-                    if (Active) Status = $"Real receiver hidden from games ({ids.Count} device nodes). Reconnect the wheel or restart the game if it still sees it.";
+                    if (Active) Status = $"Real receiver hidden from games ({ids.Count} device nodes). Close and reopen joy.cpl / the game; if still visible, turn the wheel off and on.";
                     return Status;
                 }
                 catch (Exception ex)
@@ -121,7 +198,9 @@ namespace XboxWheelCompatibility.WheelTransformer
                     var cli = FindCli();
                     if (cli == null) { Status = "Off"; Active = false; return Status; }
 
-                    var ids = HiddenByUs.Count > 0 ? HiddenByUs.ToList() : FindReceiverInstanceIds();
+                    var ids = HiddenByUs.Count > 0
+                        ? HiddenByUs.ToList()
+                        : FindReceiverInstanceIds().Concat(FindFromHidHide(cli)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                     foreach (var id in ids)
                     {
                         var r = Run(cli, $"--dev-unhide \"{id}\"");
