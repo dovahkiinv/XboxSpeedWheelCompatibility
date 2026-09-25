@@ -28,5 +28,6 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetDeviceMode(int Mode);
         public void SetSteeringAxis(int Axis);
         public void SetInvertSteering(bool Invert);
+        public void SetOutputMode(int Mode);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
@@ -23,8 +24,59 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static long _lastAxisLogMs;
         private static string _lastAxisLogLine = "";
 
-        public static bool InjectorAvailable => Injector != null;
-        public static string? InjectorErrorMessage => InjectorCreationError;
+        private static volatile bool _outputsDirty = true;
+        private static readonly object OutputLock = new();
+
+        /// <summary>True when at least one virtual controller is active.</summary>
+        public static bool InjectorAvailable => Injector != null || ViGEmOutput.Connected;
+        public static string? InjectorErrorMessage => InjectorCreationError ?? ViGEmOutput.Error;
+        public static bool InputInjectorActive => Injector != null;
+        public static bool ViGEmActive => ViGEmOutput.Connected;
+        public static string? ViGEmError => ViGEmOutput.Error;
+
+        /// <summary>Human readable description of the active outputs.</summary>
+        public static string ActiveOutputs
+        {
+            get
+            {
+                var parts = new List<string>();
+                if (ViGEmOutput.Connected) parts.Add("ViGEm Xbox 360");
+                if (Injector != null) parts.Add("InputInjector");
+                return parts.Count > 0 ? string.Join(" + ", parts) : "none";
+            }
+        }
+
+        /// <summary>Request outputs to be recreated (after the output mode changed).</summary>
+        public static void ReconfigureOutputs() => _outputsDirty = true;
+
+        private static void ApplyOutputMode()
+        {
+            lock (OutputLock)
+            {
+                if (!_outputsDirty) return;
+                _outputsDirty = false;
+
+                var mode = SettingsManager.Output;
+                bool wantViGEm = mode == OutputMode.ViGEm || mode == OutputMode.Both || mode == OutputMode.Auto;
+                bool vigemOk = wantViGEm && ViGEmOutput.TryConnect();
+                if (!wantViGEm) ViGEmOutput.Disconnect();
+
+                bool wantInjector = mode == OutputMode.InputInjector || mode == OutputMode.Both
+                    || (mode == OutputMode.Auto && !vigemOk);
+
+                if (wantInjector)
+                {
+                    EnsureInjector();
+                }
+                else
+                {
+                    DestroyInjector();
+                    InjectorCreationError = null;
+                }
+
+                DiagnosticsLog.Write($"Output mode {mode}: active outputs = {ActiveOutputs}");
+            }
+        }
         public static long InjectAttempts => Interlocked.Read(ref _injectAttempts);
         public static long InjectSuccesses => Interlocked.Read(ref _injectSuccesses);
         public static string? LastInjectError => _lastInjectError;
@@ -115,7 +167,7 @@ namespace XboxWheelCompatibility.WheelTransformer
 
             LogAxesIfChanged(reading);
 
-            if (Injector == null) return;
+            if (Injector == null && !ViGEmOutput.Connected) return;
 
             double adjustedWheel = ApplySensitivity(reading.Steering);
 
@@ -123,6 +175,13 @@ namespace XboxWheelCompatibility.WheelTransformer
 
             try
             {
+                if (ViGEmOutput.Connected)
+                {
+                    ViGEmOutput.Submit(reading.OutputButtons, reading.Brake, reading.Throttle, adjustedWheel);
+                }
+
+                if (Injector != null)
+                {
                 // Output layout is identical for every device type:
                 // steering -> LeftThumbstickX, throttle -> RightTrigger, brake -> LeftTrigger.
                 Injector.InjectGamepadInput(new InjectedInputGamepadInfo(
@@ -135,6 +194,7 @@ namespace XboxWheelCompatibility.WheelTransformer
                         )
                     )
                 );
+                }
                 Interlocked.Increment(ref _injectSuccesses);
                 _lastInjectError = null;
             }
@@ -164,7 +224,8 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static void Initialize()
         {
             _ = SettingsManager.Sensitivity;
-            EnsureInjector();
+            _outputsDirty = true;
+            ApplyOutputMode();
 
             if (_initialized) return;
             _initialized = true;
@@ -172,6 +233,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             LifecycleManager.Tick += (object? Sender, EventArgs Event) =>
             {
                 if (!LifecycleManager.Started) return;
+                if (_outputsDirty) ApplyOutputMode();
 
                 if (RacingWheel.RacingWheels.Count > WheelManager.ActiveWheels.Count)
                 {
@@ -189,6 +251,15 @@ namespace XboxWheelCompatibility.WheelTransformer
         }
 
         public static void Destroy()
+        {
+            lock (OutputLock)
+            {
+                ViGEmOutput.Disconnect();
+                DestroyInjector();
+            }
+        }
+
+        private static void DestroyInjector()
         {
             try
             {

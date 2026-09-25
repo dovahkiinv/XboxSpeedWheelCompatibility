@@ -23,6 +23,18 @@ namespace XboxWheelCompatibility.WheelTransformer
         SpeedWheelOnly = 2,
     }
 
+    /// <summary>Which virtual controller(s) receive the output.</summary>
+    public enum OutputMode
+    {
+        /// <summary>ViGEm if the ViGEmBus driver is installed, otherwise InputInjector.</summary>
+        Auto = 0,
+        /// <summary>Windows InputInjector gamepad (Windows.Gaming.Input / GameInput games only).</summary>
+        InputInjector = 1,
+        /// <summary>ViGEmBus virtual Xbox 360 controller (XInput + DirectInput + WGI games).</summary>
+        ViGEm = 2,
+        Both = 3,
+    }
+
     /// <summary>Which source axis is used as steering for Speed Wheel / gamepad devices.</summary>
     public enum SteeringAxisSource
     {

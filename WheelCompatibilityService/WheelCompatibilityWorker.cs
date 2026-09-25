@@ -94,6 +94,13 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             DiagnosticsLog.Write("Invert steering set to " + Invert);
         }
 
+        public void SetOutputMode(int Mode)
+        {
+            SettingsManager.Output = (OutputMode)Mode;
+            DiagnosticsLog.Write("Output mode set to " + SettingsManager.Output);
+            InjectionManager.ReconfigureOutputs();
+        }
+
         public InjectionDiagnostics GetInjectionDiagnostics()
         {
             return new InjectionDiagnostics
@@ -103,6 +110,10 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 InjectAttempts = InjectionManager.InjectAttempts,
                 InjectSuccesses = InjectionManager.InjectSuccesses,
                 LastInjectError = InjectionManager.LastInjectError,
+                ActiveOutputs = InjectionManager.ActiveOutputs,
+                ViGEmActive = InjectionManager.ViGEmActive,
+                ViGEmError = InjectionManager.ViGEmError,
+                OutputMode = (int)SettingsManager.Output,
             };
         }
 

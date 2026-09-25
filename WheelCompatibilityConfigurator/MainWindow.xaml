@@ -328,7 +328,15 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Virtual output" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="OutputModeCombo" Margin="0,2" SelectionChanged="OutputModeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (ViGEm if installed, else InputInjector)" />
+                    <ComboBoxItem Content="InputInjector only (F1 25 / new games)" />
+                    <ComboBoxItem Content="ViGEm Xbox 360 only (CarX, older games, F1 25)" />
+                    <ComboBoxItem Content="Both" />
+                </ComboBox>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Device mode" VerticalAlignment="Center" />
                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="DeviceModeCombo" Margin="0,2" SelectionChanged="DeviceModeCombo_SelectionChanged">
                     <ComboBoxItem Content="Auto (RacingWheel first, then Speed Wheel)" />

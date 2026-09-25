@@ -84,6 +84,15 @@ namespace WheelCompatibilityConfigurator
             _ = Task.Run(() => ServiceCommunicator.TrySetDeviceMode(mode));
         }
 
+        private bool OutputModeLoaded = false;
+
+        private void OutputModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SuppressDeviceEvents || OutputModeCombo.SelectedIndex < 0) return;
+            int mode = OutputModeCombo.SelectedIndex;
+            _ = Task.Run(() => ServiceCommunicator.TrySetOutputMode(mode));
+        }
+
         private void SteeringAxisCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SuppressDeviceEvents || SteeringAxisCombo.SelectedIndex < 0) return;
@@ -119,6 +128,14 @@ namespace WheelCompatibilityConfigurator
                 return;
             }
 
+            if (!OutputModeLoaded)
+            {
+                SuppressDeviceEvents = true;
+                OutputModeCombo.SelectedIndex = Math.Clamp(diag.OutputMode, 0, 3);
+                SuppressDeviceEvents = false;
+                OutputModeLoaded = true;
+            }
+
             if (!diag.InjectorAvailable)
             {
                 InjectionStatusBorder.Background = new SolidColorBrush(Color.FromRgb(0xFD, 0xE0, 0xE0));
@@ -152,7 +169,8 @@ namespace WheelCompatibilityConfigurator
             InjectionStatusBorder.Background = new SolidColorBrush(Color.FromRgb(0xE0, 0xF4, 0xE6));
             InjectionStatusBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x2E, 0xA8, 0x4F));
             InjectionStatusText.Foreground = new SolidColorBrush(Color.FromRgb(0x1A, 0x5E, 0x2D));
-            InjectionStatusText.Text = $"Injection OK: {diag.InjectSuccesses}/{diag.InjectAttempts} succeeded.";
+            InjectionStatusText.Text = $"Injection OK via {diag.ActiveOutputs}: {diag.InjectSuccesses}/{diag.InjectAttempts} succeeded."
+                + (!diag.ViGEmActive && !string.IsNullOrEmpty(diag.ViGEmError) ? " ViGEm: " + diag.ViGEmError : "");
             InjectionStatusBorder.Visibility = Visibility.Visible;
         }
 

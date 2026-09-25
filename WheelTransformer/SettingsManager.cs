@@ -62,6 +62,12 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.PhysicalDegrees = Math.Clamp(value, MinPhysicalDegrees, MaxPhysicalDegrees));
         }
 
+        public static OutputMode Output
+        {
+            get { EnsureLoaded(); return _data.Output; }
+            set => Update(d => d.Output = Enum.IsDefined(value) ? value : OutputMode.Auto);
+        }
+
         public static DeviceSelectionMode DeviceMode
         {
             get { EnsureLoaded(); return _data.DeviceMode; }
@@ -122,6 +128,7 @@ namespace XboxWheelCompatibility.WheelTransformer
                 data.DeadZone = Math.Clamp(data.DeadZone, MinDeadZone, MaxDeadZone);
                 data.RotationDegrees = Math.Clamp(data.RotationDegrees, MinRotationDegrees, MaxRotationDegrees);
                 data.PhysicalDegrees = Math.Clamp(data.PhysicalDegrees, MinPhysicalDegrees, MaxPhysicalDegrees);
+                if (!Enum.IsDefined(data.Output)) data.Output = OutputMode.Auto;
                 if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
                 if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
                 _data = data;
@@ -153,6 +160,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             public double RotationDegrees { get; set; } = DefaultRotationDegrees;
             public double PhysicalDegrees { get; set; } = DefaultPhysicalDegrees;
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
+            public OutputMode Output { get; set; } = OutputMode.Auto;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

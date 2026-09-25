@@ -175,6 +175,7 @@ namespace WheelCompatibilityConfigurator
             }
         }
 
+        public bool TrySetOutputMode(int mode) => TryInvoke(p => p.SetOutputMode(mode));
         public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
         public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));
         public bool TrySetInvertSteering(bool invert) => TryInvoke(p => p.SetInvertSteering(invert));

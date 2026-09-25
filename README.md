@@ -62,6 +62,16 @@ Use the built-in diagnostics:
 6. Everything is also written to `%ProgramData%\XboxWheelCompatibility\diagnostics.log`
    (device changes and axis values every 2 s when they change). Attach this file when reporting problems.
 
+### Virtual output: ViGEm vs InputInjector
+
+| Output | Seen by |
+| --- | --- |
+| **ViGEm Xbox 360** (needs the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus/releases)) | XInput and DirectInput games (CarX Drift Racing, older F1 titles) and Windows.Gaming.Input / GameInput games (F1 25) |
+| **InputInjector** (built into Windows) | only Windows.Gaming.Input / GameInput games |
+
+*Virtual output = Auto* uses ViGEm when the driver is installed, otherwise InputInjector. The ViGEm
+controller is wired, so the service never reads it back as an input device.
+
 ### F1 25 notes
 
 - The game also sees the original Speed Wheel as a normal Xbox controller, so it may receive input from
