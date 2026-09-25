@@ -1,0 +1,28 @@
+name: Windows build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish service and configurator
+        shell: pwsh
+        run: ./build.ps1 -Publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XboxWheelCompatibility-win-x64
+          path: publish/
+      - name: Build self-contained Windows installer
+        shell: pwsh
+        run: ./build-installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XboxWheelCompatibility-installer
+          path: artifacts/*.msi

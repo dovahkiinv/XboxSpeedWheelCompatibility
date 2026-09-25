@@ -1,0 +1,37 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Xbox Wheel Compatibility" Manufacturer="AbhiPoluri" Version="$(var.Version)" UpgradeCode="6070FEFC-B26D-47F2-B80D-32EA2DA933BA" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILD &gt;= 19045)" Message="Windows 10 22H2 or Windows 11 (64-bit) is required." />
+    <Property Id="WINDOWSBUILD">
+      <RegistrySearch Id="WindowsBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuildNumber" Type="raw" />
+    </Property>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="XboxWheelCompatibility">
+        <Directory Id="ServiceFolder" Name="Service" />
+        <Directory Id="ConfiguratorFolder" Name="Configurator" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutFolder" Name="Xbox Wheel Compatibility" />
+    </StandardDirectory>
+    <Component Id="ServiceComponent" Directory="ServiceFolder" Guid="*">
+      <File Id="ServiceExe" Source="$(var.Payload)\Service\WheelCompatibilityService.exe" KeyPath="yes" />
+      <ServiceInstall Name="WheelCompatibilityService" DisplayName="Wheel Compatibility Service" Description="Converts racing wheel input to Xbox controller input." Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" />
+      <ServiceControl Name="WheelCompatibilityService" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+    <Component Id="ConfiguratorComponent" Directory="ConfiguratorFolder" Guid="*">
+      <File Id="ConfiguratorExe" Source="$(var.Payload)\Configurator\WheelCompatibilityConfigurator.exe" KeyPath="yes">
+        <Shortcut Id="StartMenuShortcut" Directory="ShortcutFolder" Name="Xbox Wheel Compatibility" WorkingDirectory="ConfiguratorFolder" Advertise="yes" />
+      </File>
+      <RemoveFolder Id="RemoveShortcutFolder" Directory="ShortcutFolder" On="uninstall" />
+    </Component>
+    <Feature Id="Application" Title="Xbox Wheel Compatibility">
+      <ComponentRef Id="ServiceComponent" />
+      <ComponentRef Id="ConfiguratorComponent" />
+      <ComponentGroupRef Id="PayloadFiles" />
+    </Feature>
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.License)" />
+  </Package>
+</Wix>
