@@ -60,6 +60,7 @@ namespace WheelCompatibilityConfigurator
                         DeviceModeCombo.SelectedIndex = Math.Clamp(status.DeviceMode, 0, 2);
                         SteeringAxisCombo.SelectedIndex = Math.Clamp(status.SteeringAxis, 0, 4);
                         InvertSteeringCheck.IsChecked = status.InvertSteering;
+                        HideRealDeviceCheck.IsChecked = status.HideRealDevice;
                         SuppressDeviceEvents = false;
                         DeviceSettingsLoaded = true;
                     }
@@ -68,6 +69,7 @@ namespace WheelCompatibilityConfigurator
                         ? "No RacingWheel, XInput or Gamepad devices found."
                         : string.Join(Environment.NewLine, status.ScanLines);
                     LogPathText.Text = "Log file: " + status.LogPath;
+                    HidHideStatusText.Text = status.HidHideStatus;
                     LogText.Text = string.Join(Environment.NewLine, status.RecentLog);
                     LogText.ScrollToEnd();
                 }
@@ -98,6 +100,17 @@ namespace WheelCompatibilityConfigurator
             if (SuppressDeviceEvents || SteeringAxisCombo.SelectedIndex < 0) return;
             int axis = SteeringAxisCombo.SelectedIndex;
             _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAxis(axis));
+        }
+
+        private async void HideRealDeviceCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (SuppressDeviceEvents) return;
+            bool hide = HideRealDeviceCheck.IsChecked == true;
+            HideRealDeviceCheck.IsEnabled = false;
+            HidHideStatusText.Text = hide ? "Hiding real receiver..." : "Unhiding real receiver...";
+            string? result = await Task.Run(() => ServiceCommunicator.TrySetHideRealDevice(hide));
+            HidHideStatusText.Text = result ?? "Service unreachable";
+            HideRealDeviceCheck.IsEnabled = true;
         }
 
         private void InvertSteeringCheck_Changed(object sender, RoutedEventArgs e)

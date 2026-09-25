@@ -17,6 +17,10 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public int SteeringAxis { get; set; }
         public bool InvertSteering { get; set; }
 
+        /// <summary>Real Xbox 360 receiver hidden from games via HidHide.</summary>
+        public bool HideRealDevice { get; set; }
+        public string HidHideStatus { get; set; } = "";
+
         /// <summary>Everything seen in the last device scan (RacingWheels, XInput slots, Gamepads).</summary>
         public string[] ScanLines { get; set; } = Array.Empty<string>();
 

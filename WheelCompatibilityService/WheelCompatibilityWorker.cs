@@ -69,6 +69,8 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 DeviceMode = (int)SettingsManager.DeviceMode,
                 SteeringAxis = (int)SettingsManager.SteeringAxis,
                 InvertSteering = SettingsManager.InvertSteering,
+                HideRealDevice = SettingsManager.HideRealDevice,
+                HidHideStatus = HidHideManager.Status,
                 ScanLines = WheelManager.LastScan,
                 RecentLog = DiagnosticsLog.GetRecent(12),
                 LogPath = DiagnosticsLog.OutputLogPath + "  |  " + DiagnosticsLog.LogPath,
@@ -92,6 +94,12 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
         {
             SettingsManager.InvertSteering = Invert;
             DiagnosticsLog.Write("Invert steering set to " + Invert);
+        }
+
+        public string SetHideRealDevice(bool Hide)
+        {
+            SettingsManager.HideRealDevice = Hide;
+            return Hide ? HidHideManager.Enable() : HidHideManager.Disable();
         }
 
         public void SetOutputMode(int Mode)
@@ -170,6 +178,11 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
                 TCPHost.Open();
                 DiagnosticsLog.Write("Configuration endpoint listening on TCP 127.0.0.1:16581.");
+
+                if (SettingsManager.HideRealDevice)
+                {
+                    _ = Task.Run(() => HidHideManager.Enable());
+                }
             }
             catch (Exception ex)
             {
@@ -183,6 +196,12 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
         public override Task StopAsync(CancellationToken Cancellation)
         {
             TCPHost.Close();
+
+            // Never leave the real wheel hidden when the service is not running.
+            if (HidHideManager.Active)
+            {
+                HidHideManager.Disable();
+            }
 
             WheelInputTransformer.Stop();
 

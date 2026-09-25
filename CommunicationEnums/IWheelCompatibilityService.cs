@@ -29,5 +29,7 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetSteeringAxis(int Axis);
         public void SetInvertSteering(bool Invert);
         public void SetOutputMode(int Mode);
+        /// <summary>Hide/unhide the real Xbox 360 receiver from games (HidHide). Returns a status message.</summary>
+        public string SetHideRealDevice(bool Hide);
     }
 }

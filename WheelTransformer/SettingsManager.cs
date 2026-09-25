@@ -62,6 +62,13 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.PhysicalDegrees = Math.Clamp(value, MinPhysicalDegrees, MaxPhysicalDegrees));
         }
 
+        /// <summary>Hide the real Xbox 360 receiver from games with HidHide while the service runs.</summary>
+        public static bool HideRealDevice
+        {
+            get { EnsureLoaded(); return _data.HideRealDevice; }
+            set => Update(d => d.HideRealDevice = value);
+        }
+
         public static OutputMode Output
         {
             get { EnsureLoaded(); return _data.Output; }
@@ -161,6 +168,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             public double PhysicalDegrees { get; set; } = DefaultPhysicalDegrees;
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
             public OutputMode Output { get; set; } = OutputMode.Auto;
+            public bool HideRealDevice { get; set; } = false;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

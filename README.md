@@ -72,6 +72,17 @@ Use the built-in diagnostics:
 *Virtual output = Auto* uses ViGEm when the driver is installed, otherwise InputInjector. The ViGEm
 controller is wired, so the service never reads it back as an input device.
 
+### Hiding the real wheel from games (HidHide)
+
+Games also see the real Speed Wheel (as "Steering Wheel" and "Controller (Xbox 360 Wireless Receiver
+for Windows)"), which can double the input or make the game ignore your settings. Install
+[HidHide](https://github.com/nefarius/HidHide/releases), reboot, then tick **Hide real Speed Wheel /
+receiver from games** in the configurator. The service whitelists itself in HidHide, hides every device
+node of the Xbox 360 receiver (VID_045E&PID_0719 – all controllers on that receiver) and turns cloaking on.
+Unticking it, or stopping the service normally, unhides them again. If the service ever crashes while
+hiding is on, run `"C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off`
+or open HidHide Configuration Client and untick the devices.
+
 ### F1 25 notes
 
 - The game also sees the original Speed Wheel as a normal Xbox controller, so it may receive input from
