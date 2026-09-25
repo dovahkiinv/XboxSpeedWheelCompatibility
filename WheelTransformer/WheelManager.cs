@@ -344,7 +344,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             if (_initialized) return;
             _initialized = true;
             ListenForWheelChanges();
-            DiagnosticsLog.Write("WheelManager initialised. Device mode: " + SettingsManager.DeviceMode);
+            DiagnosticsLog.Write($"WheelManager initialised. Device mode: {SettingsManager.DeviceMode}, steering axis: {SettingsManager.SteeringAxis}, invert: {SettingsManager.InvertSteering}, sensitivity: {SettingsManager.Sensitivity:0.00}");
             SelectDevice(force: true);
         }
     }

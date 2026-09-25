@@ -58,7 +58,8 @@ Use the built-in diagnostics:
 3. *Steering axis = Auto* uses LeftThumbstickX; if LX never moves but another axis does, Auto switches to it.
    You can also pick the axis manually, and tick **Invert steering** if left/right are swapped.
 4. *Detected devices* lists every RacingWheel, XInput slot (with sub type) and Gamepad Windows reports.
-5. Everything is also written to `%ProgramData%\XboxWheelCompatibility\diagnostics.log`
+5. The service writes `Output.log` next to `WheelCompatibilityService.exe` (fresh on every start).
+6. Everything is also written to `%ProgramData%\XboxWheelCompatibility\diagnostics.log`
    (device changes and axis values every 2 s when they change). Attach this file when reporting problems.
 
 ### F1 25 notes

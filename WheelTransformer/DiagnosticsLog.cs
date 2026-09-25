@@ -18,6 +18,10 @@ namespace XboxWheelCompatibility.WheelTransformer
 
         public static readonly string LogPath = Path.Combine(SettingsManager.SettingsDirectory, "diagnostics.log");
 
+        /// <summary>Per-session log next to the service executable (overwritten on every service start).</summary>
+        public static readonly string OutputLogPath = Path.Combine(AppContext.BaseDirectory, "Output.log");
+        private static bool _outputLogStarted;
+
         /// <summary>Optional sink (e.g. ILogger) set by the service.</summary>
         public static Action<string>? ExternalSink { get; set; }
 
@@ -29,6 +33,8 @@ namespace XboxWheelCompatibility.WheelTransformer
             {
                 RecentLines.AddLast(line);
                 while (RecentLines.Count > MaxMemoryLines) RecentLines.RemoveFirst();
+
+                WriteOutputLog(line);
 
                 if (SettingsManager.DiagnosticLogging)
                 {
@@ -52,6 +58,28 @@ namespace XboxWheelCompatibility.WheelTransformer
             }
 
             try { ExternalSink?.Invoke(message); } catch { }
+        }
+
+        private static void WriteOutputLog(string line)
+        {
+            try
+            {
+                if (!_outputLogStarted)
+                {
+                    _outputLogStarted = true;
+                    File.WriteAllText(OutputLogPath,
+                        "Xbox Wheel Compatibility - Output.log" + Environment.NewLine +
+                        $"Started: {DateTime.Now:yyyy-MM-dd HH:mm:ss}  OS: {Environment.OSVersion}  64-bit: {Environment.Is64BitProcess}" + Environment.NewLine +
+                        "----------------------------------------------------------------" + Environment.NewLine);
+                }
+                var info = new FileInfo(OutputLogPath);
+                if (info.Exists && info.Length > 2 * MaxFileBytes) return;
+                File.AppendAllText(OutputLogPath, line + Environment.NewLine);
+            }
+            catch
+            {
+                // Folder may be read-only (e.g. Program Files without admin) - diagnostics.log still works.
+            }
         }
 
         public static string[] GetRecent(int count)

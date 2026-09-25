@@ -56,7 +56,7 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 InvertSteering = SettingsManager.InvertSteering,
                 ScanLines = WheelManager.LastScan,
                 RecentLog = DiagnosticsLog.GetRecent(12),
-                LogPath = DiagnosticsLog.LogPath,
+                LogPath = DiagnosticsLog.OutputLogPath + "  |  " + DiagnosticsLog.LogPath,
             };
         }
 
