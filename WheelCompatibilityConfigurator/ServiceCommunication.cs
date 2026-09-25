@@ -119,5 +119,42 @@ namespace WheelCompatibilityConfigurator
                 return null;
             }
         }
+
+        public DeviceStatus? TryGetDeviceStatus()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+
+            try
+            {
+                return client.Proxy.GetDeviceStatus();
+            }
+            catch
+            {
+                Invalidate();
+                return null;
+            }
+        }
+
+        public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
+        public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));
+        public bool TrySetInvertSteering(bool invert) => TryInvoke(p => p.SetInvertSteering(invert));
+
+        private bool TryInvoke(Action<IWheelCompatibilityService> action)
+        {
+            var client = GetClient();
+            if (client == null) return false;
+
+            try
+            {
+                action(client.Proxy);
+                return true;
+            }
+            catch
+            {
+                Invalidate();
+                return false;
+            }
+        }
     }
 }

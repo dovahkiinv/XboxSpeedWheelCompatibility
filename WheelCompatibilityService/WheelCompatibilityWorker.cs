@@ -12,8 +12,19 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
         public int GetMainWheelIndex()
         {
-            return RacingWheel.RacingWheels.ToList().IndexOf(WheelManager.MainWheel);
+            switch (WheelManager.ActiveKind)
+            {
+                case InputDeviceKind.RacingWheel:
+                    var wheel = WheelManager.MainWheel;
+                    return wheel == null ? -1 : RacingWheel.RacingWheels.ToList().IndexOf(wheel);
+                case InputDeviceKind.XInputSpeedWheel:
+                case InputDeviceKind.Gamepad:
+                    return 0;
+                default:
+                    return -1;
+            }
         }
+
         public void Start()
         {
             WheelInputTransformer.Start();
@@ -34,6 +45,40 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             SettingsManager.Sensitivity = Sensitivity;
         }
 
+        public DeviceStatus GetDeviceStatus()
+        {
+            return new DeviceStatus
+            {
+                DeviceKind = (int)WheelManager.ActiveKind,
+                DeviceName = WheelManager.ActiveDeviceName,
+                DeviceMode = (int)SettingsManager.DeviceMode,
+                SteeringAxis = (int)SettingsManager.SteeringAxis,
+                InvertSteering = SettingsManager.InvertSteering,
+                ScanLines = WheelManager.LastScan,
+                RecentLog = DiagnosticsLog.GetRecent(12),
+                LogPath = DiagnosticsLog.LogPath,
+            };
+        }
+
+        public void SetDeviceMode(int Mode)
+        {
+            SettingsManager.DeviceMode = (DeviceSelectionMode)Mode;
+            DiagnosticsLog.Write("Device mode set to " + SettingsManager.DeviceMode);
+            WheelManager.SelectDevice(force: true);
+        }
+
+        public void SetSteeringAxis(int Axis)
+        {
+            SettingsManager.SteeringAxis = (SteeringAxisSource)Axis;
+            DiagnosticsLog.Write("Steering axis set to " + SettingsManager.SteeringAxis);
+        }
+
+        public void SetInvertSteering(bool Invert)
+        {
+            SettingsManager.InvertSteering = Invert;
+            DiagnosticsLog.Write("Invert steering set to " + Invert);
+        }
+
         public InjectionDiagnostics GetInjectionDiagnostics()
         {
             return new InjectionDiagnostics
@@ -48,37 +93,45 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
         public WheelReadingSnapshot GetReadingSnapshot()
         {
-            var wheel = WheelManager.MainWheel;
-            if (wheel == null)
+            var reading = InjectionManager.LastReading;
+            if (reading == null || reading.Kind == InputDeviceKind.None)
             {
-                return new WheelReadingSnapshot { HasWheel = false };
-            }
-
-            try
-            {
-                var reading = wheel.GetCurrentReading();
                 return new WheelReadingSnapshot
                 {
-                    HasWheel = true,
-                    Wheel = reading.Wheel,
-                    WheelAdjusted = InjectionManager.ApplySensitivity(reading.Wheel),
-                    Throttle = reading.Throttle,
-                    Brake = reading.Brake,
-                    Clutch = reading.Clutch,
-                    Handbrake = reading.Handbrake,
-                    Buttons = (int)reading.Buttons,
+                    HasWheel = false,
+                    DeviceKind = (int)WheelManager.ActiveKind,
+                    DeviceName = WheelManager.ActiveDeviceName,
                 };
             }
-            catch
+
+            return new WheelReadingSnapshot
             {
-                return new WheelReadingSnapshot { HasWheel = false };
-            }
+                HasWheel = true,
+                Wheel = reading.Steering,
+                WheelAdjusted = InjectionManager.ApplySensitivity(reading.Steering),
+                Throttle = reading.Throttle,
+                Brake = reading.Brake,
+                Clutch = reading.Clutch,
+                Handbrake = reading.Handbrake,
+                Buttons = reading.RawButtons,
+                OutputButtons = (int)reading.OutputButtons,
+                DeviceKind = (int)reading.Kind,
+                DeviceName = reading.DeviceName,
+                LeftX = reading.LeftX,
+                LeftY = reading.LeftY,
+                RightX = reading.RightX,
+                RightY = reading.RightY,
+                LeftTrigger = reading.LeftTrigger,
+                RightTrigger = reading.RightTrigger,
+                SteeringAxisUsed = reading.Kind == InputDeviceKind.RacingWheel ? "Wheel" : reading.SteeringAxisUsed.ToString(),
+            };
         }
 
         public WheelCompatibilityWorker(ILogger<WheelCompatibilityWorker> logger)
         {
             Logger = logger;
             TCPHost = new TcpHost(16581);
+            DiagnosticsLog.ExternalSink = message => Logger.LogInformation("{Message}", message);
         }
 
         protected override Task ExecuteAsync(CancellationToken Cancellation)

@@ -11,31 +11,52 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const double DefaultSensitivity = 1.0;
 
         private static readonly object FileLock = new();
-        private static readonly string SettingsDirectory = Path.Combine(
+        public static readonly string SettingsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "XboxWheelCompatibility"
         );
         private static readonly string SettingsPath = Path.Combine(SettingsDirectory, "settings.json");
 
-        private static double _sensitivity = DefaultSensitivity;
+        private static SettingsData _data = new();
         private static bool _loaded = false;
 
         public static double Sensitivity
         {
-            get
+            get { EnsureLoaded(); return _data.Sensitivity; }
+            set => Update(d => d.Sensitivity = Math.Clamp(value, MinSensitivity, MaxSensitivity));
+        }
+
+        public static DeviceSelectionMode DeviceMode
+        {
+            get { EnsureLoaded(); return _data.DeviceMode; }
+            set => Update(d => d.DeviceMode = Enum.IsDefined(value) ? value : DeviceSelectionMode.Auto);
+        }
+
+        public static SteeringAxisSource SteeringAxis
+        {
+            get { EnsureLoaded(); return _data.SteeringAxis; }
+            set => Update(d => d.SteeringAxis = Enum.IsDefined(value) ? value : SteeringAxisSource.Auto);
+        }
+
+        public static bool InvertSteering
+        {
+            get { EnsureLoaded(); return _data.InvertSteering; }
+            set => Update(d => d.InvertSteering = value);
+        }
+
+        public static bool DiagnosticLogging
+        {
+            get { EnsureLoaded(); return _data.DiagnosticLogging; }
+            set => Update(d => d.DiagnosticLogging = value);
+        }
+
+        private static void Update(Action<SettingsData> change)
+        {
+            EnsureLoaded();
+            lock (FileLock)
             {
-                EnsureLoaded();
-                return _sensitivity;
-            }
-            set
-            {
-                var clamped = Math.Clamp(value, MinSensitivity, MaxSensitivity);
-                lock (FileLock)
-                {
-                    _sensitivity = clamped;
-                    _loaded = true;
-                    Save();
-                }
+                change(_data);
+                Save();
             }
         }
 
@@ -61,7 +82,10 @@ namespace XboxWheelCompatibility.WheelTransformer
                 var data = JsonSerializer.Deserialize<SettingsData>(json);
                 if (data == null) return;
 
-                _sensitivity = Math.Clamp(data.Sensitivity, MinSensitivity, MaxSensitivity);
+                data.Sensitivity = Math.Clamp(data.Sensitivity, MinSensitivity, MaxSensitivity);
+                if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
+                if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
+                _data = data;
             }
             catch
             {
@@ -74,7 +98,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             try
             {
                 Directory.CreateDirectory(SettingsDirectory);
-                var json = JsonSerializer.Serialize(new SettingsData { Sensitivity = _sensitivity });
+                var json = JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(SettingsPath, json);
             }
             catch
@@ -86,6 +110,10 @@ namespace XboxWheelCompatibility.WheelTransformer
         private class SettingsData
         {
             public double Sensitivity { get; set; } = DefaultSensitivity;
+            public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
+            public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
+            public bool InvertSteering { get; set; } = false;
+            public bool DiagnosticLogging { get; set; } = true;
         }
     }
 }

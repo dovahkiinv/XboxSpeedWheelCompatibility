@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WheelCompatibilityConfigurator"
         mc:Ignorable="d"
-        Title="Xbox Wheel Compatibility" Height="640" Width="440"
-        ResizeMode="CanMinimize">
+        Title="Xbox Wheel Compatibility" Height="860" Width="460"
+        ResizeMode="CanResize" MinWidth="440">
     <Window.Resources>
         <Style x:Key="ButtonDot" TargetType="Border">
             <Setter Property="Width" Value="22" />
@@ -24,8 +24,11 @@
         </Style>
     </Window.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -38,7 +41,7 @@
         </Grid.RowDefinitions>
 
         <Label Grid.Row="0"
-               Content="No wheel detected"
+               Content="Searching for wheel..."
                x:Name="ServiceStatusIndicator"
                HorizontalAlignment="Center"
                FontSize="14"
@@ -191,7 +194,7 @@
             </Grid>
 
             <!-- Buttons grid -->
-            <TextBlock Text="Buttons" Margin="0,10,0,2" Foreground="#444" FontSize="11" />
+            <TextBlock Text="Buttons (sent to virtual controller)" Margin="0,10,0,2" Foreground="#444" FontSize="11" />
             <UniformGrid Columns="6" Rows="2" HorizontalAlignment="Center">
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotDPadUp" Style="{StaticResource ButtonDot}" />
@@ -211,11 +214,11 @@
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotPrevGear" Style="{StaticResource ButtonDot}" />
-                    <TextBlock Text="←Gr" Style="{StaticResource ButtonLabel}" />
+                    <TextBlock Text="LB" Style="{StaticResource ButtonLabel}" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotNextGear" Style="{StaticResource ButtonDot}" />
-                    <TextBlock Text="Gr→" Style="{StaticResource ButtonLabel}" />
+                    <TextBlock Text="RB" Style="{StaticResource ButtonLabel}" />
                 </StackPanel>
 
                 <StackPanel HorizontalAlignment="Center">
@@ -244,5 +247,53 @@
                 </StackPanel>
             </UniformGrid>
         </StackPanel>
+        <!-- Device selection / Speed Wheel settings -->
+        <StackPanel Grid.Row="8" Margin="0,10,0,0">
+            <Separator Margin="0,0,0,6" />
+            <Label Content="Device &amp; Speed Wheel" FontWeight="SemiBold" Padding="0" />
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Device mode" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="DeviceModeCombo" Margin="0,2" SelectionChanged="DeviceModeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (RacingWheel first, then Speed Wheel)" />
+                    <ComboBoxItem Content="RacingWheel only" />
+                    <ComboBoxItem Content="Xbox 360 Speed Wheel / gamepad only" />
+                </ComboBox>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Steering axis" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SteeringAxisCombo" Margin="0,2" SelectionChanged="SteeringAxisCombo_SelectionChanged">
+                    <ComboBoxItem Content="Auto (LeftThumbstickX, detect others)" />
+                    <ComboBoxItem Content="LeftThumbstickX" />
+                    <ComboBoxItem Content="RightThumbstickX" />
+                    <ComboBoxItem Content="LeftThumbstickY" />
+                    <ComboBoxItem Content="RightThumbstickY" />
+                </ComboBox>
+                <CheckBox Grid.Row="2" Grid.Column="1" x:Name="InvertSteeringCheck" Content="Invert steering" Margin="0,4"
+                          Checked="InvertSteeringCheck_Changed" Unchecked="InvertSteeringCheck_Changed" />
+            </Grid>
+            <TextBlock Text="Steering / axis settings apply to the Speed Wheel and gamepad modes only."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Raw axis diagnostics -->
+        <StackPanel Grid.Row="9" Margin="0,10,0,0">
+            <Separator Margin="0,0,0,6" />
+            <Label Content="Diagnostics (raw axes)" FontWeight="SemiBold" Padding="0" />
+            <TextBlock x:Name="RawAxesText" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" Text="-" />
+            <TextBlock Text="Turn the wheel fully left/right: the axis that moves is your steering axis." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,4" />
+            <TextBlock Text="Detected devices" Foreground="#444" FontSize="11" />
+            <TextBox x:Name="ScanText" FontFamily="Consolas" FontSize="10" IsReadOnly="True" TextWrapping="Wrap" MinHeight="50" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
+            <TextBlock x:Name="LogPathText" Text="Log file:" FontSize="10" Foreground="#444" Margin="0,6,0,0" TextWrapping="Wrap" />
+            <TextBox x:Name="LogText" FontFamily="Consolas" FontSize="10" IsReadOnly="True" TextWrapping="NoWrap" MinHeight="60" MaxHeight="140"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+        </StackPanel>
     </Grid>
+    </ScrollViewer>
 </Window>

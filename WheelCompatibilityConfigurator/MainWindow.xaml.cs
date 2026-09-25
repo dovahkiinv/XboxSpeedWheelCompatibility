@@ -15,6 +15,8 @@ namespace WheelCompatibilityConfigurator
         private readonly Communicator ServiceCommunicator = new();
         private readonly CancellationTokenSource StatusLoopCancellation = new();
         private bool SuppressSliderEvent = false;
+        private bool SuppressDeviceEvents = false;
+        private bool DeviceSettingsLoaded = false;
 
         private static readonly Brush ButtonIdleBrush = new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
         private static readonly Brush ButtonActiveBrush = new SolidColorBrush(Color.FromRgb(0x2E, 0xA8, 0x4F));
@@ -32,6 +34,68 @@ namespace WheelCompatibilityConfigurator
             _ = StatusLoop(StatusLoopCancellation.Token);
             _ = TesterLoop(StatusLoopCancellation.Token);
             _ = DiagnosticsLoop(StatusLoopCancellation.Token);
+            _ = DeviceStatusLoop(StatusLoopCancellation.Token);
+        }
+
+        private static string DeviceKindLabel(int kind) => kind switch
+        {
+            1 => "Racing wheel",
+            2 => "Speed Wheel",
+            3 => "Controller (gamepad mode)",
+            _ => "No device",
+        };
+
+        private async Task DeviceStatusLoop(CancellationToken Cancellation)
+        {
+            while (!Cancellation.IsCancellationRequested)
+            {
+                DeviceStatus? status = await Task.Run(() => ServiceCommunicator.TryGetDeviceStatus());
+                if (Cancellation.IsCancellationRequested) return;
+
+                if (status != null)
+                {
+                    if (!DeviceSettingsLoaded)
+                    {
+                        SuppressDeviceEvents = true;
+                        DeviceModeCombo.SelectedIndex = Math.Clamp(status.DeviceMode, 0, 2);
+                        SteeringAxisCombo.SelectedIndex = Math.Clamp(status.SteeringAxis, 0, 4);
+                        InvertSteeringCheck.IsChecked = status.InvertSteering;
+                        SuppressDeviceEvents = false;
+                        DeviceSettingsLoaded = true;
+                    }
+
+                    ScanText.Text = status.ScanLines.Length == 0
+                        ? "No RacingWheel, XInput or Gamepad devices found."
+                        : string.Join(Environment.NewLine, status.ScanLines);
+                    LogPathText.Text = "Log file: " + status.LogPath;
+                    LogText.Text = string.Join(Environment.NewLine, status.RecentLog);
+                    LogText.ScrollToEnd();
+                }
+
+                try { await Task.Delay(1000, Cancellation); }
+                catch (TaskCanceledException) { return; }
+            }
+        }
+
+        private void DeviceModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SuppressDeviceEvents || DeviceModeCombo.SelectedIndex < 0) return;
+            int mode = DeviceModeCombo.SelectedIndex;
+            _ = Task.Run(() => ServiceCommunicator.TrySetDeviceMode(mode));
+        }
+
+        private void SteeringAxisCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SuppressDeviceEvents || SteeringAxisCombo.SelectedIndex < 0) return;
+            int axis = SteeringAxisCombo.SelectedIndex;
+            _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAxis(axis));
+        }
+
+        private void InvertSteeringCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (SuppressDeviceEvents) return;
+            bool invert = InvertSteeringCheck.IsChecked == true;
+            _ = Task.Run(() => ServiceCommunicator.TrySetInvertSteering(invert));
         }
 
         private async Task DiagnosticsLoop(CancellationToken Cancellation)
@@ -108,6 +172,7 @@ namespace WheelCompatibilityConfigurator
             while (!Cancellation.IsCancellationRequested)
             {
                 int? index = await Task.Run(() => ServiceCommunicator.TryGetMainWheelIndex());
+                DeviceStatus? status = index.HasValue ? await Task.Run(() => ServiceCommunicator.TryGetDeviceStatus()) : null;
 
                 if (Cancellation.IsCancellationRequested) return;
 
@@ -115,9 +180,16 @@ namespace WheelCompatibilityConfigurator
                 {
                     ServiceStatusIndicator.Content = "Service unreachable";
                 }
+                else if (status != null && status.DeviceKind != 0)
+                {
+                    string label = DeviceKindLabel(status.DeviceKind) + " connected";
+                    ServiceStatusIndicator.Content = string.IsNullOrWhiteSpace(status.DeviceName)
+                        ? label
+                        : label + ": " + status.DeviceName;
+                }
                 else if (index.Value == -1)
                 {
-                    ServiceStatusIndicator.Content = "No wheel connected";
+                    ServiceStatusIndicator.Content = "No wheel or Speed Wheel connected";
                 }
                 else
                 {
@@ -154,7 +226,25 @@ namespace WheelCompatibilityConfigurator
             double brake = active ? snapshot!.Brake : 0;
             double clutch = active ? snapshot!.Clutch : 0;
             double handbrake = active ? snapshot!.Handbrake : 0;
-            RacingWheelButtons buttons = active ? (RacingWheelButtons)snapshot!.Buttons : RacingWheelButtons.None;
+            GamepadButtons buttons = active ? (GamepadButtons)snapshot!.OutputButtons : GamepadButtons.None;
+
+            if (!active)
+            {
+                RawAxesText.Text = snapshot == null ? "Service unreachable" : "No active device";
+            }
+            else if (snapshot!.DeviceKind == 1)
+            {
+                RawAxesText.Text = string.Format(CultureInfo.InvariantCulture,
+                    "RacingWheel  wheel={0:+0.000;-0.000; 0.000}  thr={1:0.00}  brk={2:0.00}  raw buttons=0x{3:X}",
+                    snapshot.Wheel, snapshot.Throttle, snapshot.Brake, snapshot.Buttons);
+            }
+            else
+            {
+                RawAxesText.Text = string.Format(CultureInfo.InvariantCulture,
+                    "LX={0:+0.000;-0.000; 0.000}  LY={1:+0.000;-0.000; 0.000}\nRX={2:+0.000;-0.000; 0.000}  RY={3:+0.000;-0.000; 0.000}\nLT={4:0.000}  RT={5:0.000}  buttons=0x{6:X4}\nSteering uses: {7}",
+                    snapshot.LeftX, snapshot.LeftY, snapshot.RightX, snapshot.RightY,
+                    snapshot.LeftTrigger, snapshot.RightTrigger, snapshot.Buttons, snapshot.SteeringAxisUsed);
+            }
 
             // Steering wheel icons: rotate based on raw and adjusted values.
             // -1..1 is mapped to ±450° so a fully-locked wheel makes 1.25 rotations on screen.
@@ -177,18 +267,18 @@ namespace WheelCompatibilityConfigurator
             HandbrakeBar.Value = Math.Clamp(handbrake, 0, 1);
             HandbrakeValueLabel.Text = ((int)Math.Round(handbrake * 100)).ToString() + "%";
 
-            SetButton(DotDPadUp, buttons.HasFlag(RacingWheelButtons.DPadUp));
-            SetButton(DotDPadDown, buttons.HasFlag(RacingWheelButtons.DPadDown));
-            SetButton(DotDPadLeft, buttons.HasFlag(RacingWheelButtons.DPadLeft));
-            SetButton(DotDPadRight, buttons.HasFlag(RacingWheelButtons.DPadRight));
-            SetButton(DotPrevGear, buttons.HasFlag(RacingWheelButtons.PreviousGear));
-            SetButton(DotNextGear, buttons.HasFlag(RacingWheelButtons.NextGear));
-            SetButton(DotB1, buttons.HasFlag(RacingWheelButtons.Button1));
-            SetButton(DotB2, buttons.HasFlag(RacingWheelButtons.Button2));
-            SetButton(DotB3, buttons.HasFlag(RacingWheelButtons.Button3));
-            SetButton(DotB4, buttons.HasFlag(RacingWheelButtons.Button4));
-            SetButton(DotB5, buttons.HasFlag(RacingWheelButtons.Button5));
-            SetButton(DotB6, buttons.HasFlag(RacingWheelButtons.Button6));
+            SetButton(DotDPadUp, buttons.HasFlag(GamepadButtons.DPadUp));
+            SetButton(DotDPadDown, buttons.HasFlag(GamepadButtons.DPadDown));
+            SetButton(DotDPadLeft, buttons.HasFlag(GamepadButtons.DPadLeft));
+            SetButton(DotDPadRight, buttons.HasFlag(GamepadButtons.DPadRight));
+            SetButton(DotPrevGear, buttons.HasFlag(GamepadButtons.LeftShoulder));
+            SetButton(DotNextGear, buttons.HasFlag(GamepadButtons.RightShoulder));
+            SetButton(DotB1, buttons.HasFlag(GamepadButtons.Menu));
+            SetButton(DotB2, buttons.HasFlag(GamepadButtons.View));
+            SetButton(DotB3, buttons.HasFlag(GamepadButtons.A));
+            SetButton(DotB4, buttons.HasFlag(GamepadButtons.B));
+            SetButton(DotB5, buttons.HasFlag(GamepadButtons.X));
+            SetButton(DotB6, buttons.HasFlag(GamepadButtons.Y));
         }
 
         private static void SetButton(System.Windows.Controls.Border dot, bool pressed)
