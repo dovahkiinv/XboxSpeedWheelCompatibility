@@ -16,8 +16,10 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetSensitivity(double Sensitivity);
         public double GetDeadZone();
         public void SetDeadZone(double DeadZone);
-        public double GetSteeringRange();
-        public void SetSteeringRange(double Range);
+        public double GetRotationDegrees();
+        public void SetRotationDegrees(double Degrees);
+        public double GetPhysicalDegrees();
+        public void SetPhysicalDegrees(double Degrees);
         public WheelReadingSnapshot GetReadingSnapshot();
         public InjectionDiagnostics GetInjectionDiagnostics();
 

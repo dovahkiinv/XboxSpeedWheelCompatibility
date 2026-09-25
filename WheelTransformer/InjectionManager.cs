@@ -73,11 +73,17 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static double ApplySensitivity(double wheelValue)
         {
             double deadZone = SettingsManager.DeadZone;
-            double range = Math.Max(SettingsManager.SteeringRange, deadZone + 0.05);
             double mag = Math.Abs(wheelValue);
             if (mag <= deadZone) return 0.0;
-            // Map [deadZone .. range] of physical travel to [0 .. 1] output; beyond range = full lock.
-            wheelValue = Math.Sign(wheelValue) * Math.Min(1.0, (mag - deadZone) / (range - deadZone));
+            // Dead zone: rescale so full input is still 1.0.
+            mag = Math.Min(1.0, (mag - deadZone) / (1.0 - deadZone));
+
+            // Rotation angle: physical angle turned -> fraction of the virtual wheel's half-rotation.
+            // e.g. physical 90 deg, rotation 180 -> 1:1; rotation 90 -> full lock at 45 deg;
+            // rotation 540 -> turning 90 deg gives 1/3 lock (the game never reaches full lock).
+            double physicalAngle = mag * SettingsManager.PhysicalDegrees;
+            double halfRotation = SettingsManager.RotationDegrees / 2.0;
+            wheelValue = Math.Sign(wheelValue) * Math.Min(1.0, physicalAngle / halfRotation);
 
             double sensitivity = SettingsManager.Sensitivity;
             if (sensitivity <= 0) return wheelValue;

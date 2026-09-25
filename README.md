@@ -120,7 +120,8 @@ To build the installer from source, run `./build-installer.ps1` in PowerShell. T
 
 ## Steering sensitivity and dead zone
 
-- Steering range (`20 %`–`100 %`, default `100 %`): how much of the wheel's physical travel gives full lock. At `60 %` the game gets full lock when the wheel is turned 60 % of the way. The Speed Wheel has no fixed rotation angle (it is a motion-sensing wheel), so this is the equivalent of a "maximum rotation" setting.
+- Rotation angle (`90°`–`1080°` lock to lock, default `180°`, presets 180/270/360/540/900/1080): like on a real wheel, full lock in the game is reached at half this angle to each side. Example: with 180° you get full lock at 90° left/right; with 90° already at 45°.
+- Calibration – physical turn at full input (default `90°` per side): how far the wheel is physically turned when it reports ±1.00. The Speed Wheel is a tilt/motion wheel reaching ±1.00 at roughly 90°; adjust if your measurement differs.
 - Dead zone (`0.00`–`0.50`, default `0.05`): steering inside it is sent as 0, the rest is rescaled so full lock is still 100 %. The Speed Wheel drifts about ±0.07 at rest, so `0.08` is a good start.
 
 - `1.00`: linear steering.

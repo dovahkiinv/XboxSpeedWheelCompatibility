@@ -12,9 +12,12 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const double MinDeadZone = 0.0;
         public const double MaxDeadZone = 0.5;
         public const double DefaultDeadZone = 0.05;
-        public const double MinSteeringRange = 0.2;
-        public const double MaxSteeringRange = 1.0;
-        public const double DefaultSteeringRange = 1.0;
+        public const double MinRotationDegrees = 90;
+        public const double MaxRotationDegrees = 1080;
+        public const double DefaultRotationDegrees = 180;
+        public const double MinPhysicalDegrees = 30;
+        public const double MaxPhysicalDegrees = 540;
+        public const double DefaultPhysicalDegrees = 90;
 
         private static readonly object FileLock = new();
         public static readonly string SettingsDirectory = Path.Combine(
@@ -40,13 +43,23 @@ namespace XboxWheelCompatibility.WheelTransformer
         }
 
         /// <summary>
-        /// Fraction of the physical steering travel that produces full lock (1.0 = whole range,
-        /// 0.5 = full lock already at half of the wheel's travel).
+        /// Virtual wheel rotation, lock to lock, in degrees (like 180/270/540/900/1080 on real wheels).
+        /// Full lock in the game is reached at half of this angle to each side.
         /// </summary>
-        public static double SteeringRange
+        public static double RotationDegrees
         {
-            get { EnsureLoaded(); return _data.SteeringRange; }
-            set => Update(d => d.SteeringRange = Math.Clamp(value, MinSteeringRange, MaxSteeringRange));
+            get { EnsureLoaded(); return _data.RotationDegrees; }
+            set => Update(d => d.RotationDegrees = Math.Clamp(value, MinRotationDegrees, MaxRotationDegrees));
+        }
+
+        /// <summary>
+        /// Calibration: how many degrees (to one side) the physical wheel is turned when the device reports
+        /// full input (1.0). Speed Wheel: about 90.
+        /// </summary>
+        public static double PhysicalDegrees
+        {
+            get { EnsureLoaded(); return _data.PhysicalDegrees; }
+            set => Update(d => d.PhysicalDegrees = Math.Clamp(value, MinPhysicalDegrees, MaxPhysicalDegrees));
         }
 
         public static DeviceSelectionMode DeviceMode
@@ -107,7 +120,8 @@ namespace XboxWheelCompatibility.WheelTransformer
 
                 data.Sensitivity = Math.Clamp(data.Sensitivity, MinSensitivity, MaxSensitivity);
                 data.DeadZone = Math.Clamp(data.DeadZone, MinDeadZone, MaxDeadZone);
-                data.SteeringRange = Math.Clamp(data.SteeringRange, MinSteeringRange, MaxSteeringRange);
+                data.RotationDegrees = Math.Clamp(data.RotationDegrees, MinRotationDegrees, MaxRotationDegrees);
+                data.PhysicalDegrees = Math.Clamp(data.PhysicalDegrees, MinPhysicalDegrees, MaxPhysicalDegrees);
                 if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
                 if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
                 _data = data;
@@ -136,7 +150,8 @@ namespace XboxWheelCompatibility.WheelTransformer
         {
             public double Sensitivity { get; set; } = DefaultSensitivity;
             public double DeadZone { get; set; } = DefaultDeadZone;
-            public double SteeringRange { get; set; } = DefaultSteeringRange;
+            public double RotationDegrees { get; set; } = DefaultRotationDegrees;
+            public double PhysicalDegrees { get; set; } = DefaultPhysicalDegrees;
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;

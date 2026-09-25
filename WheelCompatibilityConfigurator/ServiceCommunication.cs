@@ -138,16 +138,19 @@ namespace WheelCompatibilityConfigurator
 
         public bool TrySetDeadZone(double deadZone) => TryInvoke(p => p.SetDeadZone(deadZone));
 
-        public bool TrySetSteeringRange(double range) => TryInvoke(p => p.SetSteeringRange(range));
+        public bool TrySetRotationDegrees(double degrees) => TryInvoke(p => p.SetRotationDegrees(degrees));
+        public bool TrySetPhysicalDegrees(double degrees) => TryInvoke(p => p.SetPhysicalDegrees(degrees));
+        public double? TryGetRotationDegrees() => TryGet(p => p.GetRotationDegrees());
+        public double? TryGetPhysicalDegrees() => TryGet(p => p.GetPhysicalDegrees());
 
-        public double? TryGetSteeringRange()
+        private double? TryGet(Func<IWheelCompatibilityService, double> getter)
         {
             var client = GetClient();
             if (client == null) return null;
 
             try
             {
-                return client.Proxy.GetSteeringRange();
+                return getter(client.Proxy);
             }
             catch
             {

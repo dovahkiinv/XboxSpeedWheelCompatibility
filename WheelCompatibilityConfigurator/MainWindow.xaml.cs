@@ -167,14 +167,14 @@ namespace WheelCompatibilityConfigurator
                 SuppressSliderEvent = false;
             }
 
-            double? range = await Task.Run(() => ServiceCommunicator.TryGetSteeringRange());
-            if (range.HasValue)
-            {
-                SuppressSliderEvent = true;
-                SteeringRangeSlider.Value = range.Value;
-                SteeringRangeValueLabel.Content = ((int)Math.Round(range.Value * 100)).ToString() + "%";
-                SuppressSliderEvent = false;
-            }
+            double? rotation = await Task.Run(() => ServiceCommunicator.TryGetRotationDegrees());
+            double? physical = await Task.Run(() => ServiceCommunicator.TryGetPhysicalDegrees());
+            SuppressSliderEvent = true;
+            if (rotation.HasValue) { RotationSlider.Value = rotation.Value; CurrentRotation = rotation.Value; }
+            if (physical.HasValue) { PhysicalSlider.Value = physical.Value; CurrentPhysical = physical.Value; }
+            RotationValueLabel.Content = $"{RotationSlider.Value:0}°";
+            PhysicalValueLabel.Content = $"{PhysicalSlider.Value:0}°";
+            SuppressSliderEvent = false;
 
             double? sensitivity = await Task.Run(() => ServiceCommunicator.TryGetSensitivity());
             if (!sensitivity.HasValue) return;
@@ -264,14 +264,16 @@ namespace WheelCompatibilityConfigurator
                     snapshot.LeftTrigger, snapshot.RightTrigger, snapshot.Buttons, snapshot.SteeringAxisUsed);
             }
 
-            // Steering wheel icons: rotate based on raw and adjusted values.
-            // -1..1 is mapped to ±450° so a fully-locked wheel makes 1.25 rotations on screen.
-            const double MaxAngleDegrees = 450.0;
-            WheelInputRotation.Angle = Math.Clamp(wheel, -1.0, 1.0) * MaxAngleDegrees;
-            WheelOutputRotation.Angle = Math.Clamp(wheelAdjusted, -1.0, 1.0) * MaxAngleDegrees;
+            // Steering wheel icons in real degrees: input = physical turn, output = virtual wheel angle.
+            double inputDeg = Math.Clamp(wheel, -1.0, 1.0) * CurrentPhysical;
+            double outputDeg = Math.Clamp(wheelAdjusted, -1.0, 1.0) * CurrentRotation / 2.0;
+            WheelInputRotation.Angle = inputDeg;
+            WheelOutputRotation.Angle = outputDeg;
 
-            WheelValueLabel.Text = wheel.ToString("+0.00;-0.00; 0.00", CultureInfo.InvariantCulture);
-            WheelAdjustedLabel.Text = wheelAdjusted.ToString("+0.00;-0.00; 0.00", CultureInfo.InvariantCulture);
+            WheelValueLabel.Text = wheel.ToString("+0.00;-0.00; 0.00", CultureInfo.InvariantCulture)
+                + "  (" + inputDeg.ToString("+0;-0;0", CultureInfo.InvariantCulture) + "°)";
+            WheelAdjustedLabel.Text = wheelAdjusted.ToString("+0.00;-0.00; 0.00", CultureInfo.InvariantCulture)
+                + "  (" + outputDeg.ToString("+0;-0;0", CultureInfo.InvariantCulture) + "°)";
 
             ThrottleBar.Value = Math.Clamp(throttle, 0, 1);
             ThrottleValueLabel.Text = ((int)Math.Round(throttle * 100)).ToString() + "%";
@@ -324,14 +326,37 @@ namespace WheelCompatibilityConfigurator
             _ = Task.Run(() => ServiceCommunicator.TrySetDeadZone(value));
         }
 
-        private void SteeringRangeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private double CurrentRotation = 180;
+        private double CurrentPhysical = 90;
+
+        private void RotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (SteeringRangeValueLabel == null) return;
-            double value = Math.Round(e.NewValue, 2);
-            SteeringRangeValueLabel.Content = ((int)Math.Round(value * 100)).ToString() + "%";
+            if (RotationValueLabel == null) return;
+            double value = Math.Round(e.NewValue);
+            CurrentRotation = value;
+            RotationValueLabel.Content = $"{value:0}°";
             if (SuppressSliderEvent || !IsLoaded) return;
 
-            _ = Task.Run(() => ServiceCommunicator.TrySetSteeringRange(value));
+            _ = Task.Run(() => ServiceCommunicator.TrySetRotationDegrees(value));
+        }
+
+        private void RotationPreset_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && double.TryParse(b.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double deg))
+            {
+                RotationSlider.Value = deg;
+            }
+        }
+
+        private void PhysicalSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (PhysicalValueLabel == null) return;
+            double value = Math.Round(e.NewValue);
+            CurrentPhysical = value;
+            PhysicalValueLabel.Content = $"{value:0}°";
+            if (SuppressSliderEvent || !IsLoaded) return;
+
+            _ = Task.Run(() => ServiceCommunicator.TrySetPhysicalDegrees(value));
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
