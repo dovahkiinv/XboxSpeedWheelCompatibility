@@ -333,11 +333,15 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <CheckBox Grid.Row="4" Grid.Column="1" x:Name="HideRealDeviceCheck" Margin="0,6,0,0"
                           Content="Hide real Speed Wheel / receiver from games (HidHide)"
                           ToolTip="Games then only see the virtual ViGEm controller. Needs the HidHide driver."
                           Checked="HideRealDeviceCheck_Changed" Unchecked="HideRealDeviceCheck_Changed" />
+                <CheckBox Grid.Row="6" Grid.Column="1" x:Name="HideXInputCheck" Margin="16,2,0,0" FontSize="11"
+                          Content="Also hide XInput interface (uncheck if a game hangs on start)"
+                          Checked="HideXInputCheck_Changed" Unchecked="HideXInputCheck_Changed" />
                 <TextBlock Grid.Row="5" Grid.Column="1" x:Name="HidHideStatusText" FontSize="11" Foreground="#444" TextWrapping="Wrap" Margin="0,2,0,0" />
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Virtual output" VerticalAlignment="Center" />
                 <ComboBox Grid.Row="3" Grid.Column="1" x:Name="OutputModeCombo" Margin="0,2" SelectionChanged="OutputModeCombo_SelectionChanged">

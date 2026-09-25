@@ -20,6 +20,7 @@ namespace XboxWheelCompatibility.CommunicationInterface
         /// <summary>Real Xbox 360 receiver hidden from games via HidHide.</summary>
         public bool HideRealDevice { get; set; }
         public string HidHideStatus { get; set; } = "";
+        public bool HideXInputInterface { get; set; } = true;
 
         /// <summary>Virtual DirectInput wheel (vJoy).</summary>
         public bool VJoyEnabled { get; set; }

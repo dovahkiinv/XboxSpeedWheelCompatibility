@@ -63,6 +63,13 @@ namespace XboxWheelCompatibility.WheelTransformer
         }
 
         /// <summary>Hide the real Xbox 360 receiver from games with HidHide while the service runs.</summary>
+        /// <summary>When hiding: also hide the XInput (XUSB) interface, not only the HID/DirectInput one.</summary>
+        public static bool HideXInputInterface
+        {
+            get { EnsureLoaded(); return _data.HideXInputInterface; }
+            set => Update(d => d.HideXInputInterface = value);
+        }
+
         public static bool HideRealDevice
         {
             get { EnsureLoaded(); return _data.HideRealDevice; }
@@ -194,6 +201,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             public DeviceSelectionMode DeviceMode { get; set; } = DeviceSelectionMode.Auto;
             public OutputMode Output { get; set; } = OutputMode.Auto;
             public bool HideRealDevice { get; set; } = false;
+            public bool HideXInputInterface { get; set; } = true;
             public bool VJoyEnabled { get; set; } = false;
             public int VJoyDeviceId { get; set; } = 1;
             public bool PedalsEnabled { get; set; } = false;

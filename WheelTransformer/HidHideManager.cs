@@ -92,6 +92,14 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static string Status { get; private set; } = "Off";
         public static bool Active { get; private set; }
 
+        /// <summary>Receiver parent node: USB\VID_045E&amp;PID_0719\serial (no "&amp;IG_" interface suffix).</summary>
+        private static bool IsReceiverRoot(string id) =>
+            id.StartsWith("USB\\", StringComparison.OrdinalIgnoreCase)
+            && !id.Contains("&IG_", StringComparison.OrdinalIgnoreCase)
+            && (id.Contains("PID_0719", StringComparison.OrdinalIgnoreCase)
+                || id.Contains("PID_0291", StringComparison.OrdinalIgnoreCase)
+                || id.Contains("PID_02A9", StringComparison.OrdinalIgnoreCase));
+
         public static string? FindCli()
         {
             var candidates = new[]
@@ -157,10 +165,25 @@ namespace XboxWheelCompatibility.WheelTransformer
                     var reg = Run(cli, $"--app-reg \"{self}\"");
                     DiagnosticsLog.Write($"HidHide: app-reg {self} -> {reg.code} {reg.output}");
 
-                    var ids = FindReceiverInstanceIds()
+                    var all = FindReceiverInstanceIds()
                         .Concat(FindFromHidHide(cli))
                         .Where(id => !ExcludePatterns.Any(x => id.Contains(x, StringComparison.OrdinalIgnoreCase)))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    // Never hide the receiver root node (XnaComposite parent) - hiding it made games
+                    // (e.g. CarX) hang during controller enumeration. Unhide it in case an older version hid it.
+                    foreach (var root in all.Where(IsReceiverRoot))
+                    {
+                        var r = Run(cli, $"--dev-unhide \"{root}\"");
+                        DiagnosticsLog.Write($"HidHide: keep receiver root visible, dev-unhide {root} -> {r.code} {r.output}");
+                    }
+
+                    bool hideXInput = SettingsManager.HideXInputInterface;
+                    var ids = all
+                        .Where(id => !IsReceiverRoot(id))
+                        // HID\... = DirectInput view; USB\...&IG_xx = XInput (XUSB) interface of the wheel.
+                        .Where(id => hideXInput || id.StartsWith("HID\\", StringComparison.OrdinalIgnoreCase))
                         .ToList();
                     if (ids.Count == 0)
                     {

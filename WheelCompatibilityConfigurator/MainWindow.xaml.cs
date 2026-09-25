@@ -64,6 +64,7 @@ namespace WheelCompatibilityConfigurator
                         SteeringAxisCombo.SelectedIndex = Math.Clamp(status.SteeringAxis, 0, 4);
                         InvertSteeringCheck.IsChecked = status.InvertSteering;
                         HideRealDeviceCheck.IsChecked = status.HideRealDevice;
+                        HideXInputCheck.IsChecked = status.HideXInputInterface;
                         VJoyEnabledCheck.IsChecked = status.VJoyEnabled;
                         VJoyDeviceCombo.SelectedIndex = Math.Clamp(status.VJoyDeviceId, 1, 16) - 1;
                         SuppressDeviceEvents = false;
@@ -257,6 +258,17 @@ namespace WheelCompatibilityConfigurator
             int id = VJoyDeviceCombo.SelectedIndex < 0 ? 1 : VJoyDeviceCombo.SelectedIndex + 1;
             VJoyStatusText.Text = enabled ? "Connecting to vJoy..." : "Off";
             _ = Task.Run(() => ServiceCommunicator.TrySetVJoy(enabled, id));
+        }
+
+        private async void HideXInputCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
+            bool hide = HideXInputCheck.IsChecked == true;
+            HideXInputCheck.IsEnabled = false;
+            HidHideStatusText.Text = "Re-applying hiding...";
+            string? result = await Task.Run(() => ServiceCommunicator.TrySetHideXInputInterface(hide));
+            HidHideStatusText.Text = result ?? "Service unreachable";
+            HideXInputCheck.IsEnabled = true;
         }
 
         private void InvertSteeringCheck_Changed(object sender, RoutedEventArgs e)

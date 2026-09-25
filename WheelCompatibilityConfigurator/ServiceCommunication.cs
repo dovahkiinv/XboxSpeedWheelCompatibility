@@ -213,6 +213,14 @@ namespace WheelCompatibilityConfigurator
             catch { Invalidate(); return null; }
         }
 
+        public string? TrySetHideXInputInterface(bool hide)
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.SetHideXInputInterface(hide); }
+            catch { Invalidate(); return null; }
+        }
+
         public bool TrySetOutputMode(int mode) => TryInvoke(p => p.SetOutputMode(mode));
         public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
         public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));

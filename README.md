@@ -79,6 +79,8 @@ for Windows)"), which can double the input or make the game ignore your settings
 [HidHide](https://github.com/nefarius/HidHide/releases), reboot, then tick **Hide real Speed Wheel /
 receiver from games** in the configurator. The service whitelists itself in HidHide, hides every device
 node of the Xbox 360 receiver (VID_045E&PID_0719 – all controllers on that receiver) and turns cloaking on.
+The receiver's root node is never hidden (hiding it made games such as CarX hang on start). If a game
+still hangs, untick *Also hide XInput interface* so only the HID/DirectInput view is hidden.
 Unticking it, or stopping the service normally, unhides them again. If the service ever crashes while
 hiding is on, run `"C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off`
 or open HidHide Configuration Client and untick the devices.
