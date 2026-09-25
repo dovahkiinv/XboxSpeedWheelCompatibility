@@ -24,8 +24,10 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static bool IsReceiverRelated(string text)
         {
             if (ExcludePatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase))) return false;
-            return DeviceIdPatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase))
-                || NamePatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase));
+            if (DeviceIdPatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase))) return true;
+            // Name match only for Microsoft devices (VID_045E) - other brands' "Steering Wheel" stay visible.
+            return text.Contains("VID_045E", StringComparison.OrdinalIgnoreCase)
+                && NamePatterns.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>

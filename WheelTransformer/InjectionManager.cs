@@ -226,7 +226,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             if (now - _lastAxisLogMs < 2000) return;
 
             string line = string.Format(CultureInfo.InvariantCulture,
-                "Axes [{0}] LX={1:+0.00;-0.00} LY={2:+0.00;-0.00} RX={3:+0.00;-0.00} RY={4:+0.00;-0.00} LT={5:0.00} RT={6:0.00} steer({7})={8:+0.00;-0.00} thr={9:0.00} brk={10:0.00} buttons=0x{11:X4}",
+                "Axes [{0}] LX={1:+0.00;-0.00;+0.00} LY={2:+0.00;-0.00;+0.00} RX={3:+0.00;-0.00;+0.00} RY={4:+0.00;-0.00;+0.00} LT={5:0.00} RT={6:0.00} steer({7})={8:+0.00;-0.00;+0.00} thr={9:0.00} brk={10:0.00} buttons=0x{11:X4}",
                 r.Kind, r.LeftX, r.LeftY, r.RightX, r.RightY, r.LeftTrigger, r.RightTrigger,
                 r.SteeringAxisUsed, r.Steering, r.Throttle, r.Brake, r.RawButtons);
 
