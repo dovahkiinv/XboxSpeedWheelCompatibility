@@ -384,6 +384,88 @@
     </ScrollViewer>
     </TabItem>
 
+    <TabItem Header="Pedals">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+                <TextBlock Text="Separate pedals" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
+                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. Pedals are merged with the Speed Wheel triggers (whichever is pressed more wins)." />
+
+                <CheckBox x:Name="PedalsEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold" Content="Use separate pedals"
+                          Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Pedal device" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="PedalsDeviceCombo" Margin="0,2" SelectionChanged="PedalsCombo_SelectionChanged" />
+                    <TextBlock Grid.Row="1" Text="Pedal axis" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="PedalsAxisCombo" Margin="0,2" SelectionChanged="PedalsCombo_SelectionChanged">
+                        <ComboBoxItem Content="X" />
+                        <ComboBoxItem Content="Y (default)" />
+                        <ComboBoxItem Content="Z" />
+                        <ComboBoxItem Content="R (X rotation)" />
+                        <ComboBoxItem Content="U (Y rotation)" />
+                        <ComboBoxItem Content="V" />
+                    </ComboBox>
+                    <CheckBox Grid.Row="2" Grid.Column="1" x:Name="PedalsSwapCheck" Margin="0,4" Content="Swap throttle / brake"
+                              Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Pedal dead zone" />
+                    <TextBlock Grid.Column="1" x:Name="PedalsDeadZoneLabel" Text="0.05" />
+                </Grid>
+                <Slider x:Name="PedalsDeadZoneSlider" Minimum="0" Maximum="0.5" Value="0.05" SmallChange="0.01" LargeChange="0.05"
+                        ValueChanged="PedalsDeadZoneSlider_ValueChanged" Margin="0,2" />
+                <TextBlock Text="Pedal travel smaller than this (from rest) is ignored, the rest is rescaled to 0-100 %." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="PedalsCalibrateButton" Content="Calibrate center" Padding="8,3" Click="PedalsCalibrateButton_Click" />
+                    <TextBlock x:Name="PedalsCenterText" Text="" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" />
+                </StackPanel>
+                <TextBlock Text="Release both pedals and click to store the rest position." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Live" FontWeight="SemiBold" />
+                <Grid Margin="0,4,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="50" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Throttle" VerticalAlignment="Center" />
+                    <ProgressBar Grid.Column="1" x:Name="PedalThrottleBar" Minimum="0" Maximum="1" Height="16" Foreground="#2EA84F" />
+                    <TextBlock Grid.Column="2" x:Name="PedalThrottleText" Text="0%" HorizontalAlignment="Right" FontFamily="Consolas" />
+                </Grid>
+                <Grid Margin="0,4,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="50" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brake" VerticalAlignment="Center" />
+                    <ProgressBar Grid.Column="1" x:Name="PedalBrakeBar" Minimum="0" Maximum="1" Height="16" Foreground="#D62828" />
+                    <TextBlock Grid.Column="2" x:Name="PedalBrakeText" Text="0%" HorizontalAlignment="Right" FontFamily="Consolas" />
+                </Grid>
+                <TextBlock x:Name="PedalsRawText" FontFamily="Consolas" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" Text="-" />
+                <TextBlock Text="Press each pedal: the axis that moves is your pedal axis." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+                <TextBlock x:Name="PedalsStatusText" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+
     <TabItem Header="Wheel emulation (vJoy)">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12">

@@ -33,5 +33,10 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public string SetHideRealDevice(bool Hide);
         /// <summary>Enable/disable the vJoy virtual wheel on the given vJoy device (1-16).</summary>
         public void SetVJoy(bool Enabled, int DeviceId);
+
+        // Separate pedals
+        public PedalsStatus GetPedalsStatus();
+        public void SetPedals(bool Enabled, string DeviceKey, int Axis, bool Swap, double DeadZone);
+        public string CalibratePedalsCenter();
     }
 }

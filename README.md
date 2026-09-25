@@ -83,6 +83,15 @@ Unticking it, or stopping the service normally, unhides them again. If the servi
 hiding is on, run `"C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe" --cloak-off`
 or open HidHide Configuration Client and untick the devices.
 
+### Separate pedals
+
+The **Pedals** tab reads any extra DirectInput joystick (e.g. an old wheel's pedal unit shown as
+"Steering Wheel" in joy.cpl) through WinMM. Combined pedals on a single axis are supported: rest =
+center, one pedal moves the axis up (throttle), the other down (brake) – use *Swap* if reversed.
+Pick the device and axis, set the pedal dead zone, release the pedals and click *Calibrate center*.
+Pedal values are merged with the Speed Wheel triggers. HidHide only hides Microsoft (VID_045E)
+receiver devices, so the pedals stay visible to the service.
+
 ### Virtual steering wheel (vJoy)
 
 The **Wheel emulation (vJoy)** tab outputs a DirectInput device that games can bind as a wheel:

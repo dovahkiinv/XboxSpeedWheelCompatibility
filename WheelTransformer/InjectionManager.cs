@@ -172,6 +172,16 @@ namespace XboxWheelCompatibility.WheelTransformer
                 reading = null;
             }
 
+            if (reading != null && PedalsManager.Update())
+            {
+                // Separate pedals are merged with the wheel triggers (whichever is pressed more).
+                reading = reading with
+                {
+                    Throttle = Math.Max(reading.Throttle, PedalsManager.Throttle),
+                    Brake = Math.Max(reading.Brake, PedalsManager.Brake),
+                };
+            }
+
             Volatile.Write(ref _lastReading, reading);
             if (reading == null) return;
 

@@ -192,6 +192,25 @@ namespace WheelCompatibilityConfigurator
         }
 
         public bool TrySetVJoy(bool enabled, int deviceId) => TryInvoke(p => p.SetVJoy(enabled, deviceId));
+        public PedalsStatus? TryGetPedalsStatus()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.GetPedalsStatus(); }
+            catch { Invalidate(); return null; }
+        }
+
+        public bool TrySetPedals(bool enabled, string deviceKey, int axis, bool swap, double deadZone)
+            => TryInvoke(p => p.SetPedals(enabled, deviceKey, axis, swap, deadZone));
+
+        public string? TryCalibratePedalsCenter()
+        {
+            var client = GetClient();
+            if (client == null) return null;
+            try { return client.Proxy.CalibratePedalsCenter(); }
+            catch { Invalidate(); return null; }
+        }
+
         public bool TrySetOutputMode(int mode) => TryInvoke(p => p.SetOutputMode(mode));
         public bool TrySetDeviceMode(int mode) => TryInvoke(p => p.SetDeviceMode(mode));
         public bool TrySetSteeringAxis(int axis) => TryInvoke(p => p.SetSteeringAxis(axis));

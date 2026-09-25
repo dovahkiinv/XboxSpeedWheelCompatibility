@@ -37,6 +37,7 @@ namespace WheelCompatibilityConfigurator
             _ = TesterLoop(StatusLoopCancellation.Token);
             _ = DiagnosticsLoop(StatusLoopCancellation.Token);
             _ = DeviceStatusLoop(StatusLoopCancellation.Token);
+            _ = PedalsLoop(StatusLoopCancellation.Token);
         }
 
         private static string DeviceKindLabel(int kind) => kind switch
@@ -117,6 +118,109 @@ namespace WheelCompatibilityConfigurator
             string? result = await Task.Run(() => ServiceCommunicator.TrySetHideRealDevice(hide));
             HidHideStatusText.Text = result ?? "Service unreachable";
             HideRealDeviceCheck.IsEnabled = true;
+        }
+
+        // ---------------- Pedals tab ----------------
+        private bool PedalsLoaded = false;
+        private bool SuppressPedalsEvents = false;
+        private string PedalsDeviceListSignature = "";
+
+        private async Task PedalsLoop(CancellationToken Cancellation)
+        {
+            while (!Cancellation.IsCancellationRequested)
+            {
+                PedalsStatus? st = await Task.Run(() => ServiceCommunicator.TryGetPedalsStatus());
+                if (Cancellation.IsCancellationRequested) return;
+                if (st != null) UpdatePedalsUI(st);
+                else PedalsStatusText.Text = "Service unreachable";
+
+                try { await Task.Delay(100, Cancellation); }
+                catch (TaskCanceledException) { return; }
+            }
+        }
+
+        private void UpdatePedalsUI(PedalsStatus st)
+        {
+            SuppressPedalsEvents = true;
+            try
+            {
+                string sig = string.Join(";", st.Devices);
+                if (sig != PedalsDeviceListSignature || !PedalsLoaded)
+                {
+                    PedalsDeviceListSignature = sig;
+                    PedalsDeviceCombo.Items.Clear();
+                    PedalsDeviceCombo.Items.Add(new ComboBoxItem { Content = "Auto (first non-Xbox joystick)", Tag = "" });
+                    foreach (var d in st.Devices)
+                    {
+                        int bar = d.IndexOf('|');
+                        string key = bar > 0 ? d.Substring(0, bar) : d;
+                        string text = bar > 0 ? d.Substring(bar + 1) : d;
+                        PedalsDeviceCombo.Items.Add(new ComboBoxItem { Content = text, Tag = key });
+                    }
+                    int sel = 0;
+                    for (int i = 0; i < PedalsDeviceCombo.Items.Count; i++)
+                    {
+                        if (PedalsDeviceCombo.Items[i] is ComboBoxItem it && string.Equals(it.Tag as string, st.DeviceKey, StringComparison.OrdinalIgnoreCase)) sel = i;
+                    }
+                    PedalsDeviceCombo.SelectedIndex = sel;
+                }
+
+                if (!PedalsLoaded)
+                {
+                    PedalsEnabledCheck.IsChecked = st.Enabled;
+                    PedalsAxisCombo.SelectedIndex = Math.Clamp(st.Axis, 0, 5);
+                    PedalsSwapCheck.IsChecked = st.Swap;
+                    PedalsDeadZoneSlider.Value = st.DeadZone;
+                    PedalsDeadZoneLabel.Text = st.DeadZone.ToString("0.00", CultureInfo.InvariantCulture);
+                    PedalsLoaded = true;
+                }
+            }
+            finally
+            {
+                SuppressPedalsEvents = false;
+            }
+
+            PedalsCenterText.Text = "Center: " + st.Center.ToString("0.000", CultureInfo.InvariantCulture);
+            PedalThrottleBar.Value = Math.Clamp(st.Throttle, 0, 1);
+            PedalBrakeBar.Value = Math.Clamp(st.Brake, 0, 1);
+            PedalThrottleText.Text = ((int)Math.Round(st.Throttle * 100)).ToString() + "%";
+            PedalBrakeText.Text = ((int)Math.Round(st.Brake * 100)).ToString() + "%";
+
+            var r = st.RawAxes.Length >= 6 ? st.RawAxes : new double[6];
+            PedalsRawText.Text = string.Format(CultureInfo.InvariantCulture,
+                "X={0:0.000}  Y={1:0.000}  Z={2:0.000}\nR={3:0.000}  U={4:0.000}  V={5:0.000}", r[0], r[1], r[2], r[3], r[4], r[5]);
+
+            PedalsStatusText.Text = !st.Connected
+                ? "No pedal device found. Check joy.cpl (the pedals must be visible there and not hidden by HidHide)."
+                : (st.Enabled ? "Active: " : "Found (not enabled): ") + st.ActiveDevice;
+        }
+
+        private void SendPedalsSettings()
+        {
+            if (SuppressPedalsEvents || !PedalsLoaded) return;
+            bool enabled = PedalsEnabledCheck.IsChecked == true;
+            string key = (PedalsDeviceCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+            int axis = PedalsAxisCombo.SelectedIndex < 0 ? 1 : PedalsAxisCombo.SelectedIndex;
+            bool swap = PedalsSwapCheck.IsChecked == true;
+            double dz = Math.Round(PedalsDeadZoneSlider.Value, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetPedals(enabled, key, axis, swap, dz));
+        }
+
+        private void PedalsSettings_Changed(object sender, RoutedEventArgs e) => SendPedalsSettings();
+
+        private void PedalsCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => SendPedalsSettings();
+
+        private void PedalsDeadZoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (PedalsDeadZoneLabel == null) return;
+            PedalsDeadZoneLabel.Text = Math.Round(e.NewValue, 2).ToString("0.00", CultureInfo.InvariantCulture);
+            SendPedalsSettings();
+        }
+
+        private async void PedalsCalibrateButton_Click(object sender, RoutedEventArgs e)
+        {
+            string? msg = await Task.Run(() => ServiceCommunicator.TryCalibratePedalsCenter());
+            PedalsStatusText.Text = msg ?? "Service unreachable";
         }
 
         private void VJoySettings_Changed(object sender, RoutedEventArgs e) => SendVJoySettings();

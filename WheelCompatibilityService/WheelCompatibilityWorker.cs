@@ -106,6 +106,40 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             return Hide ? HidHideManager.Enable() : HidHideManager.Disable();
         }
 
+        public PedalsStatus GetPedalsStatus()
+        {
+            if (!SettingsManager.PedalsEnabled) PedalsManager.ReadRaw(); // live raw axes before enabling
+            return new PedalsStatus
+            {
+                Enabled = SettingsManager.PedalsEnabled,
+                Connected = PedalsManager.Connected,
+                ActiveDevice = PedalsManager.ActiveName,
+                DeviceKey = SettingsManager.PedalsDevice,
+                Devices = PedalsManager.Devices.Select(d => d.Key + "|" + d.ToString()).ToArray(),
+                Axis = SettingsManager.PedalsAxis,
+                Swap = SettingsManager.PedalsSwap,
+                DeadZone = SettingsManager.PedalsDeadZone,
+                Center = SettingsManager.PedalsCenter,
+                RawAxes = PedalsManager.RawAxes,
+                Throttle = PedalsManager.Throttle,
+                Brake = PedalsManager.Brake,
+            };
+        }
+
+        public void SetPedals(bool Enabled, string DeviceKey, int Axis, bool Swap, double DeadZone)
+        {
+            bool changedDevice = SettingsManager.PedalsDevice != (DeviceKey ?? "");
+            SettingsManager.PedalsDevice = DeviceKey ?? "";
+            SettingsManager.PedalsAxis = Axis;
+            SettingsManager.PedalsSwap = Swap;
+            SettingsManager.PedalsDeadZone = DeadZone;
+            SettingsManager.PedalsEnabled = Enabled;
+            if (changedDevice) PedalsManager.Scan(force: true);
+            DiagnosticsLog.Write($"Pedals: enabled={Enabled} device='{DeviceKey}' axis={Axis} swap={Swap} deadzone={DeadZone:0.00}");
+        }
+
+        public string CalibratePedalsCenter() => PedalsManager.CalibrateCenter();
+
         public void SetVJoy(bool Enabled, int DeviceId)
         {
             SettingsManager.VJoyDeviceId = DeviceId;

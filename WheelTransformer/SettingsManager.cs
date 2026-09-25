@@ -82,6 +82,15 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.VJoyDeviceId = Math.Clamp(value, 1, 16));
         }
 
+        // ----- Separate pedals -----
+        public static bool PedalsEnabled { get { EnsureLoaded(); return _data.PedalsEnabled; } set => Update(d => d.PedalsEnabled = value); }
+        /// <summary>"VID:PID" of the pedal device, empty = auto (first non-Microsoft joystick).</summary>
+        public static string PedalsDevice { get { EnsureLoaded(); return _data.PedalsDevice ?? ""; } set => Update(d => d.PedalsDevice = value ?? ""); }
+        public static int PedalsAxis { get { EnsureLoaded(); return _data.PedalsAxis; } set => Update(d => d.PedalsAxis = Math.Clamp(value, 0, 5)); }
+        public static bool PedalsSwap { get { EnsureLoaded(); return _data.PedalsSwap; } set => Update(d => d.PedalsSwap = value); }
+        public static double PedalsDeadZone { get { EnsureLoaded(); return _data.PedalsDeadZone; } set => Update(d => d.PedalsDeadZone = Math.Clamp(value, 0.0, 0.5)); }
+        public static double PedalsCenter { get { EnsureLoaded(); return _data.PedalsCenter; } set => Update(d => d.PedalsCenter = Math.Clamp(value, 0.05, 0.95)); }
+
         public static OutputMode Output
         {
             get { EnsureLoaded(); return _data.Output; }
@@ -184,6 +193,12 @@ namespace XboxWheelCompatibility.WheelTransformer
             public bool HideRealDevice { get; set; } = false;
             public bool VJoyEnabled { get; set; } = false;
             public int VJoyDeviceId { get; set; } = 1;
+            public bool PedalsEnabled { get; set; } = false;
+            public string PedalsDevice { get; set; } = "";
+            public int PedalsAxis { get; set; } = 1;
+            public bool PedalsSwap { get; set; } = false;
+            public double PedalsDeadZone { get; set; } = 0.05;
+            public double PedalsCenter { get; set; } = 0.5;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

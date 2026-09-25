@@ -49,7 +49,7 @@ namespace XboxWheelCompatibility.WheelTransformer
     }
 
     /// <summary>One normalised reading from any supported device, plus the raw data for diagnostics.</summary>
-    public sealed class UnifiedReading
+    public sealed record UnifiedReading
     {
         public InputDeviceKind Kind { get; init; }
         public string DeviceName { get; init; } = "";
