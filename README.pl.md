@@ -238,6 +238,12 @@ Jak sprawdzić, że działa:
 > w ok. ±0,29 skrętu i auto zjeżdżałoby na jedną stronę. Zostaw *Steering dead zone* na **0,06–0,08**
 > (program pokaże żółte ostrzeżenie, gdy połączenie jest ryzykowne).
 
+> **Dlaczego F1 tego wymaga:** gry F1 dokładają własną martwą strefę *ponad* suwakiem *Martwa strefa
+> skrętu* w grze – jej rozmiar zależy od tego, jak gra rozpozna urządzenie, i nie da się jej ustawić
+> na 0. Zgłoszenia graczy mówią o kilku stopniach do 20–30% osi; klasycznym obejściem była zawsze
+> bardzo stroma krzywa na środku (Joystick Gremlin itp.). Anti-deadzone w tym programie robi dokładnie
+> to samo, bez dodatkowych narzędzi.
+
 ## Diagnostyka
 
 - Serwis zapisuje `Output.log` obok `WheelCompatibilityService.exe` (nowy przy każdym starcie):

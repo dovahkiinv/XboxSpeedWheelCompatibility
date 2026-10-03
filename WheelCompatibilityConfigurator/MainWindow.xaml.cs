@@ -161,11 +161,17 @@ namespace WheelCompatibilityConfigurator
             if (AntiDeadzoneFloorText == null) return;
 
             double percent = Math.Round(SteeringAntiDeadzoneSlider.Value);
+            double startDegrees = DeadZoneSlider.Value * PhysicalSlider.Value;
+            string start = startDegrees < 1.0
+                ? "as soon as you move the wheel"
+                : $"at about {startDegrees:0.#}° of wheel turn";
+
             AntiDeadzoneFloorText.Text = percent <= 0
-                ? "Game output: 0% at rest, exactly what the wheel does up to 100%."
-                : $"Game output: as soon as the wheel leaves the dead zone the game receives at least {percent:0}% "
-                  + $"of steering (0 to {percent:0}% is never sent). This floor must be larger than the game's own "
-                  + "dead zone - F1 25 ignores about 20%, so use 20-25% there.";
+                ? $"Game output: 0% at rest, then exactly what the wheel does - many games start steering {start}. "
+                  + "Games that add a dead zone of their own (F1) need the anti-deadzone instead."
+                : $"Game output: as soon as the wheel leaves the dead zone the game receives at least {percent:0}% of steering "
+                  + $"(0 to {percent:0}% is never sent), so the game starts steering {start} - provided this value is at least "
+                  + "as large as the dead zone the game itself adds (F1 games ignore roughly 20%, so use 20-25% there).";
         }
 
         /// <summary>
@@ -697,6 +703,7 @@ namespace WheelCompatibilityConfigurator
             double value = Math.Round(e.NewValue);
             CurrentPhysical = value;
             PhysicalValueLabel.Content = $"{value:0}°";
+            UpdateAntiDeadzoneFloor();
             if (SuppressSliderEvent || !IsLoaded) return;
 
             _ = Task.Run(() => ServiceCommunicator.TrySetPhysicalDegrees(value));

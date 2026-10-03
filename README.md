@@ -236,6 +236,12 @@ How to verify it works:
 > ±0.29 of steering and the car would pull to one side. Keep *Steering dead zone* at **0.06–0.08**
 > (the configurator shows a yellow warning when the combination is risky).
 
+> **Why F1 needs this at all:** F1 games add their own dead zone *on top of* the in-game
+> *Steering Deadzone* slider — the size depends on how the game recognises the device, and it cannot
+> be set to 0 in the game. Community reports put it between a few degrees and 20–30 % of the axis;
+> the classic workaround has always been a very steep response curve at the centre
+> (Joystick Gremlin etc.). The anti-deadzone in this app does exactly that, without an extra tool.
+
 ## Diagnostics
 
 - The service writes `Output.log` next to `WheelCompatibilityService.exe` (recreated on every start):
