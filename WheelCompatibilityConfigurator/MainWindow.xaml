@@ -186,6 +186,10 @@
                 Margin="0,2,0,2" />
         <TextBlock Text="0% = off. Pushes the axis away from centre so games with a built-in dead zone (F1 25: about 15-20%) react immediately. Applied last, after dead zone, rotation angle and sensitivity, to vJoy, ViGEm and InputInjector."
                    FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        <Border x:Name="AntiDeadzoneWarningBorder" Margin="0,6,0,0" Padding="6,4" CornerRadius="3"
+                Background="#FFF8E1" BorderBrush="#E6C766" BorderThickness="1" Visibility="Collapsed">
+            <TextBlock x:Name="AntiDeadzoneWarningText" FontSize="11" TextWrapping="Wrap" Foreground="#6B5400" />
+        </Border>
         </StackPanel>
 
         <Separator Grid.Row="5" Margin="0,10,0,6" />

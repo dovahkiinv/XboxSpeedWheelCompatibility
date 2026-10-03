@@ -32,6 +32,7 @@ namespace WheelCompatibilityConfigurator
             ButtonActiveBrush.Freeze();
 
             Closed += (_, _) => StatusLoopCancellation.Cancel();
+            Loaded += (_, _) => UpdateAntiDeadzoneWarning();
 
             _ = InitializeSensitivityAsync();
             _ = StatusLoop(StatusLoopCancellation.Token);
@@ -140,10 +141,30 @@ namespace WheelCompatibilityConfigurator
             if (SteeringAntiDeadzoneLabel == null) return;
             double percent = Math.Round(e.NewValue);
             SteeringAntiDeadzoneLabel.Content = $"{percent:0}%";
+            UpdateAntiDeadzoneWarning();
             if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
 
             double value = Math.Round(percent / 100.0, 2);
             _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAntiDeadzone(value));
+        }
+
+        /// <summary>
+        /// Warns when the anti-deadzone is on but the steering dead zone is (almost) zero: the Speed
+        /// Wheel drifts a little at rest and the anti-deadzone would turn that drift into real steering.
+        /// </summary>
+        private void UpdateAntiDeadzoneWarning()
+        {
+            if (AntiDeadzoneWarningBorder == null) return;
+
+            bool risky = DeadZoneSlider.Value < 0.02 && SteeringAntiDeadzoneSlider.Value >= 1.0;
+            AntiDeadzoneWarningBorder.Visibility = risky ? Visibility.Visible : Visibility.Collapsed;
+            if (!risky) return;
+
+            AntiDeadzoneWarningText.Text =
+                $"Careful: steering dead zone is {DeadZoneSlider.Value:0.00} while the anti-deadzone is "
+                + $"{SteeringAntiDeadzoneSlider.Value:0}%. The Speed Wheel drifts about ±0.07 at rest and the "
+                + "anti-deadzone multiplies that drift into a large steering value (the car pulls to one side). "
+                + "Set 'Steering dead zone' to about 0.06-0.08.";
         }
 
         private void VJoyPedalModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -621,6 +642,7 @@ namespace WheelCompatibilityConfigurator
             if (DeadZoneValueLabel == null) return;
             double value = Math.Round(e.NewValue, 2);
             DeadZoneValueLabel.Content = value.ToString("0.00", CultureInfo.InvariantCulture);
+            UpdateAntiDeadzoneWarning();
             if (SuppressSliderEvent || !IsLoaded) return;
 
             _ = Task.Run(() => ServiceCommunicator.TrySetDeadZone(value));

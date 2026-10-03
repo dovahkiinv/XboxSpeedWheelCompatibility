@@ -227,6 +227,11 @@ How to verify it works:
 > is still reached at exactly the same wheel angle, which is why *Linearity 0* and *Range 100* are
 > recommended together with it.
 
+> **Important:** with the anti-deadzone on, the steering dead zone must **not** be 0. The anti-deadzone
+> never sends less than its own value, so the Speed Wheel drift at rest (±0.07) would become about
+> ±0.29 of steering and the car would pull to one side. Keep *Steering dead zone* at **0.06–0.08**
+> (the configurator shows a yellow warning when the combination is risky).
+
 ## Diagnostics
 
 - The service writes `Output.log` next to `WheelCompatibilityService.exe` (recreated on every start):
@@ -253,6 +258,7 @@ How to verify it works:
 | "No wheel connected" | Check *Detected devices* and *Device mode*; send `Output.log` |
 | Wrong steering direction | Tick *Invert steering* or change *Steering axis* |
 | Game reacts only to large steering inputs (F1 25) | Raise *Steering anti-deadzone* (Main tab) to 15–20 %; in the game set *Linearity* 0, *Range of movement* 100, dead zone 0 |
+| Car pulls to one side with the anti-deadzone on | *Steering dead zone* is too low (0) — set 0.06–0.08, the anti-deadzone amplifies the wheel's rest drift otherwise |
 | Pedals react late | Raise *Throttle/Brake anti-deadzone* (Pedals tab); check the source selection |
 | Throttle/brake axes swapped or reversed in the game | Swap them in the game, or use *Swap throttle / brake* (Pedals) / *Invert throttle/brake axis* (vJoy tab) |
 | Red "missing axis" warning on the vJoy tab | Enable that axis for the device in *Configure vJoy*, then click Apply — the app re-checks every 5 s |

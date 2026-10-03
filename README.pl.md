@@ -230,6 +230,11 @@ Jak sprawdzić, że działa:
 > Uwaga: anti-deadzone podnosi *dół* charakterystyki; nie zmniejsza maksimum. Pełny skręt osiągasz
 > przy dokładnie tym samym kącie kierownicy – dlatego zalecamy go razem z *Linearity 0* i *Range 100*.
 
+> **Ważne:** przy włączonym anti-deadzone martwe pole skrętu **nie może** być zerowe. Anti-deadzone
+> nigdy nie wysyła mniej niż swoją wartość, więc dryf Speed Wheela w spoczynku (±0,07) zamieniłby się
+> w ok. ±0,29 skrętu i auto zjeżdżałoby na jedną stronę. Zostaw *Steering dead zone* na **0,06–0,08**
+> (program pokaże żółte ostrzeżenie, gdy połączenie jest ryzykowne).
+
 ## Diagnostyka
 
 - Serwis zapisuje `Output.log` obok `WheelCompatibilityService.exe` (nowy przy każdym starcie):
@@ -256,6 +261,7 @@ Jak sprawdzić, że działa:
 | „No wheel connected” | Sprawdź *Detected devices* i *Device mode*; przyślij `Output.log` |
 | Skręt w złą stronę | Zaznacz *Invert steering* lub zmień *Steering axis* |
 | Gra reaguje dopiero przy dużym skręcie (F1 25) | Zwiększ *Steering anti-deadzone* (zakładka Main) do 15–20%; w grze ustaw *Linearity* 0, *Range of movement* 100, martwą strefę 0 |
+| Auto zjeżdża na jedną stronę przy włączonym anti-deadzone | *Steering dead zone* jest za małe (0) – ustaw 0,06–0,08; inaczej anti-deadzone wzmacnia dryf kierownicy w spoczynku |
 | Pedały reagują późno | Zwiększ *Throttle/Brake anti-deadzone* (zakładka Pedals); sprawdź wybór źródła |
 | Gaz i hamulec zamienione lub odwrócone w grze | Zamień je w grze albo użyj *Swap throttle / brake* (Pedals) / *Invert throttle/brake axis* (vJoy) |
 | Czerwone ostrzeżenie o brakującej osi na zakładce vJoy | Włącz tę oś dla urządzenia w *Configure vJoy* i kliknij Apply – program sprawdza to co 5 s |
