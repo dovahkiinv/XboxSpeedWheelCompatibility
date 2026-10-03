@@ -37,6 +37,26 @@ namespace XboxWheelCompatibility.WheelTransformer
         None = 4,
     }
 
+    /// <summary>Where throttle / brake come from.</summary>
+    public enum PedalSource
+    {
+        /// <summary>Only the Speed Wheel's own triggers (RT = throttle, LT = brake).</summary>
+        WheelTriggers = 0,
+        /// <summary>Only the separate pedal set read by PedalsManager.</summary>
+        SeparatePedals = 1,
+        /// <summary>Both, whichever is pressed more wins (default, original behaviour).</summary>
+        BothMax = 2,
+    }
+
+    /// <summary>How throttle and brake are mapped onto the vJoy axes.</summary>
+    public enum VJoyPedalMode
+    {
+        /// <summary>Y = throttle, Z = brake, both resting at the axis minimum (default).</summary>
+        SeparateAxes = 0,
+        /// <summary>Y centred: middle = nothing, up = throttle, down = brake, Z stays at 0.</summary>
+        CombinedAxis = 1,
+    }
+
     /// <summary>Which source axis is used as steering for Speed Wheel / gamepad devices.</summary>
     public enum SteeringAxisSource
     {

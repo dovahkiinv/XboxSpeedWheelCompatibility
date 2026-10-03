@@ -138,6 +138,13 @@ namespace WheelCompatibilityConfigurator
 
         public bool TrySetDeadZone(double deadZone) => TryInvoke(p => p.SetDeadZone(deadZone));
 
+        public bool TrySetSteeringAntiDeadzone(double antiDeadzone) => TryInvoke(p => p.SetSteeringAntiDeadzone(antiDeadzone));
+        public bool TrySetThrottleAntiDeadzone(double antiDeadzone) => TryInvoke(p => p.SetThrottleAntiDeadzone(antiDeadzone));
+        public bool TrySetBrakeAntiDeadzone(double antiDeadzone) => TryInvoke(p => p.SetBrakeAntiDeadzone(antiDeadzone));
+        public bool TrySetPedalsSource(int source) => TryInvoke(p => p.SetPedalsSource(source));
+        public bool TrySetVJoyPedalAxisMode(int mode) => TryInvoke(p => p.SetVJoyPedalAxisMode(mode));
+        public bool TrySetVJoyAxisInvert(bool invertThrottle, bool invertBrake) => TryInvoke(p => p.SetVJoyAxisInvert(invertThrottle, invertBrake));
+
         public bool TrySetRotationDegrees(double degrees) => TryInvoke(p => p.SetRotationDegrees(degrees));
         public bool TrySetPhysicalDegrees(double degrees) => TryInvoke(p => p.SetPhysicalDegrees(degrees));
         public double? TryGetRotationDegrees() => TryGet(p => p.GetRotationDegrees());

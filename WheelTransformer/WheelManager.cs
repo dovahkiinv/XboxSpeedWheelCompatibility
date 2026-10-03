@@ -356,7 +356,7 @@ namespace XboxWheelCompatibility.WheelTransformer
             if (_initialized) return;
             _initialized = true;
             ListenForWheelChanges();
-            DiagnosticsLog.Write($"WheelManager initialised. Device mode: {SettingsManager.DeviceMode}, steering axis: {SettingsManager.SteeringAxis}, output: {SettingsManager.Output}, invert: {SettingsManager.InvertSteering}, sensitivity: {SettingsManager.Sensitivity:0.00}, dead zone: {SettingsManager.DeadZone:0.00}, rotation: {SettingsManager.RotationDegrees:0} deg, physical: {SettingsManager.PhysicalDegrees:0} deg");
+            DiagnosticsLog.Write($"WheelManager initialised. Device mode: {SettingsManager.DeviceMode}, steering axis: {SettingsManager.SteeringAxis}, output: {SettingsManager.Output}, invert: {SettingsManager.InvertSteering}, sensitivity: {SettingsManager.Sensitivity:0.00}, dead zone: {SettingsManager.DeadZone:0.00}, rotation: {SettingsManager.RotationDegrees:0} deg, physical: {SettingsManager.PhysicalDegrees:0} deg, steering anti-deadzone: {SettingsManager.SteeringAntiDeadzone:0.00}, pedal source: {SettingsManager.PedalsSource}, pedal anti-deadzone (thr/brk): {SettingsManager.ThrottleAntiDeadzone:0.00}/{SettingsManager.BrakeAntiDeadzone:0.00}, vJoy pedal mode: {SettingsManager.VJoyPedalAxisMode}, vJoy invert (thr/brk): {SettingsManager.VJoyInvertThrottle}/{SettingsManager.VJoyInvertBrake}");
             SelectDevice(force: true);
         }
     }

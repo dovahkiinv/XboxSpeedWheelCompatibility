@@ -18,6 +18,10 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const double MinPhysicalDegrees = 30;
         public const double MaxPhysicalDegrees = 540;
         public const double DefaultPhysicalDegrees = 90;
+        /// <summary>Anti-deadzone is a fraction (0 = off, 0.40 = 40 %) added on top of the output.</summary>
+        public const double MinAntiDeadzone = 0.0;
+        public const double MaxAntiDeadzone = 0.40;
+        public const double DefaultAntiDeadzone = 0.0;
 
         private static readonly object FileLock = new();
         public static readonly string SettingsDirectory = Path.Combine(
@@ -89,7 +93,60 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.VJoyDeviceId = Math.Clamp(value, 1, 16));
         }
 
+        /// <summary>vJoy pedal mapping: separate Y/Z axes (default) or one centred Y axis.</summary>
+        public static VJoyPedalMode VJoyPedalAxisMode
+        {
+            get { EnsureLoaded(); return _data.VJoyPedalAxisMode; }
+            set => Update(d => d.VJoyPedalAxisMode = Enum.IsDefined(value) ? value : VJoyPedalMode.SeparateAxes);
+        }
+
+        /// <summary>Invert the vJoy throttle axis (pedal at rest rests at the axis maximum).</summary>
+        public static bool VJoyInvertThrottle
+        {
+            get { EnsureLoaded(); return _data.VJoyInvertThrottle; }
+            set => Update(d => d.VJoyInvertThrottle = value);
+        }
+
+        /// <summary>Invert the vJoy brake axis (pedal at rest rests at the axis maximum).</summary>
+        public static bool VJoyInvertBrake
+        {
+            get { EnsureLoaded(); return _data.VJoyInvertBrake; }
+            set => Update(d => d.VJoyInvertBrake = value);
+        }
+
+        /// <summary>
+        /// Anti-deadzone for steering (0..0.40). Applied LAST, after dead zone, rotation angle and
+        /// sensitivity, right before the value is sent to ViGEm / InputInjector / vJoy:
+        ///   |x| &lt; 0.001 -&gt; 0,  otherwise sign(x) * (ad + (1 - ad) * |x|).
+        /// Compensates the built-in dead zone some games have (F1 25 needs about 0.15-0.20).
+        /// </summary>
+        public static double SteeringAntiDeadzone
+        {
+            get { EnsureLoaded(); return _data.SteeringAntiDeadzone; }
+            set => Update(d => d.SteeringAntiDeadzone = Math.Clamp(value, MinAntiDeadzone, MaxAntiDeadzone));
+        }
+
+        /// <summary>Anti-deadzone for throttle (0..0.40), same idea but without a sign (0..1).</summary>
+        public static double ThrottleAntiDeadzone
+        {
+            get { EnsureLoaded(); return _data.ThrottleAntiDeadzone; }
+            set => Update(d => d.ThrottleAntiDeadzone = Math.Clamp(value, MinAntiDeadzone, MaxAntiDeadzone));
+        }
+
+        /// <summary>Anti-deadzone for brake (0..0.40), same idea but without a sign (0..1).</summary>
+        public static double BrakeAntiDeadzone
+        {
+            get { EnsureLoaded(); return _data.BrakeAntiDeadzone; }
+            set => Update(d => d.BrakeAntiDeadzone = Math.Clamp(value, MinAntiDeadzone, MaxAntiDeadzone));
+        }
+
         // ----- Separate pedals -----
+        /// <summary>Where throttle / brake come from: wheel triggers, separate pedals or both (max).</summary>
+        public static PedalSource PedalsSource
+        {
+            get { EnsureLoaded(); return _data.PedalsSource; }
+            set => Update(d => d.PedalsSource = Enum.IsDefined(value) ? value : PedalSource.BothMax);
+        }
         public static bool PedalsEnabled { get { EnsureLoaded(); return _data.PedalsEnabled; } set => Update(d => d.PedalsEnabled = value); }
         /// <summary>"VID:PID" of the pedal device, empty = auto (first non-Microsoft joystick).</summary>
         public static string PedalsDevice { get { EnsureLoaded(); return _data.PedalsDevice ?? ""; } set => Update(d => d.PedalsDevice = value ?? ""); }
@@ -167,9 +224,16 @@ namespace XboxWheelCompatibility.WheelTransformer
                 data.DeadZone = Math.Clamp(data.DeadZone, MinDeadZone, MaxDeadZone);
                 data.RotationDegrees = Math.Clamp(data.RotationDegrees, MinRotationDegrees, MaxRotationDegrees);
                 data.PhysicalDegrees = Math.Clamp(data.PhysicalDegrees, MinPhysicalDegrees, MaxPhysicalDegrees);
+                // Old settings.json files have no anti-deadzone keys at all - the defaults above (0)
+                // keep the behaviour identical to previous versions.
+                data.SteeringAntiDeadzone = Math.Clamp(data.SteeringAntiDeadzone, MinAntiDeadzone, MaxAntiDeadzone);
+                data.ThrottleAntiDeadzone = Math.Clamp(data.ThrottleAntiDeadzone, MinAntiDeadzone, MaxAntiDeadzone);
+                data.BrakeAntiDeadzone = Math.Clamp(data.BrakeAntiDeadzone, MinAntiDeadzone, MaxAntiDeadzone);
                 if (!Enum.IsDefined(data.Output)) data.Output = OutputMode.Auto;
                 if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
                 if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
+                if (!Enum.IsDefined(data.PedalsSource)) data.PedalsSource = PedalSource.BothMax;
+                if (!Enum.IsDefined(data.VJoyPedalAxisMode)) data.VJoyPedalAxisMode = VJoyPedalMode.SeparateAxes;
                 _data = data;
             }
             catch
@@ -204,6 +268,13 @@ namespace XboxWheelCompatibility.WheelTransformer
             public bool HideXInputInterface { get; set; } = true;
             public bool VJoyEnabled { get; set; } = false;
             public int VJoyDeviceId { get; set; } = 1;
+            public VJoyPedalMode VJoyPedalAxisMode { get; set; } = VJoyPedalMode.SeparateAxes;
+            public bool VJoyInvertThrottle { get; set; } = false;
+            public bool VJoyInvertBrake { get; set; } = false;
+            public double SteeringAntiDeadzone { get; set; } = DefaultAntiDeadzone;
+            public double ThrottleAntiDeadzone { get; set; } = DefaultAntiDeadzone;
+            public double BrakeAntiDeadzone { get; set; } = DefaultAntiDeadzone;
+            public PedalSource PedalsSource { get; set; } = PedalSource.BothMax;
             public bool PedalsEnabled { get; set; } = false;
             public string PedalsDevice { get; set; } = "";
             public int PedalsAxis { get; set; } = 1;

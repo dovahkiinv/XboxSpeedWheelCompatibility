@@ -20,9 +20,25 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static string? _lastInjectError;
         private static UnifiedReading? _lastReading;
 
+        // Values that were actually sent to the virtual devices (raw -> processed -> output).
+        // Read by the configurator's live tester so it shows exactly what the game receives.
+        private static double _lastOutSteering;
+        private static double _lastOutThrottle;
+        private static double _lastOutBrake;
+        private static double _lastTriggerThrottle;
+        private static double _lastTriggerBrake;
+        private static double _lastPedalThrottle;
+        private static double _lastPedalBrake;
+        private static bool _lastPedalsConnected;
+
         private static readonly Stopwatch AxisLogTimer = Stopwatch.StartNew();
         private static long _lastAxisLogMs;
+        private static long _lastAxisLogChangeMs;
         private static string _lastAxisLogLine = "";
+
+        /// <summary>Values are logged at most this often; when idle only every <see cref="AxisLogHeartbeatMs"/>.</summary>
+        private const long AxisLogIntervalMs = 3000;
+        private const long AxisLogHeartbeatMs = 15000;
 
         private static volatile bool _outputsDirty = true;
         private static readonly object OutputLock = new();
@@ -94,6 +110,18 @@ namespace XboxWheelCompatibility.WheelTransformer
         /// <summary>Last reading taken from the active device (thread-safe reference swap).</summary>
         public static UnifiedReading? LastReading => Volatile.Read(ref _lastReading);
 
+        /// <summary>Steering as sent to the virtual devices (after sensitivity and anti-deadzone).</summary>
+        public static double LastOutSteering => Volatile.Read(ref _lastOutSteering);
+        public static double LastOutThrottle => Volatile.Read(ref _lastOutThrottle);
+        public static double LastOutBrake => Volatile.Read(ref _lastOutBrake);
+        /// <summary>Throttle straight from the device triggers (before merging with the pedals).</summary>
+        public static double LastTriggerThrottle => Volatile.Read(ref _lastTriggerThrottle);
+        public static double LastTriggerBrake => Volatile.Read(ref _lastTriggerBrake);
+        /// <summary>Throttle straight from the separate pedal set (before merging).</summary>
+        public static double LastPedalThrottle => Volatile.Read(ref _lastPedalThrottle);
+        public static double LastPedalBrake => Volatile.Read(ref _lastPedalBrake);
+        public static bool LastPedalsConnected => Volatile.Read(ref _lastPedalsConnected);
+
         private static void EnsureInjector()
         {
             if (Injector != null) return;
@@ -130,7 +158,8 @@ namespace XboxWheelCompatibility.WheelTransformer
 
         /// <summary>
         /// Dead zone (values inside it become 0, the rest is rescaled so full lock is still 1.0),
-        /// followed by the sensitivity curve.
+        /// followed by the rotation angle and the sensitivity curve. The anti-deadzone is applied
+        /// afterwards in <see cref="ApplySteeringOutput"/>, right before the value is sent out.
         /// </summary>
         public static double ApplySensitivity(double wheelValue)
         {
@@ -172,24 +201,69 @@ namespace XboxWheelCompatibility.WheelTransformer
                 reading = null;
             }
 
-            if (reading != null && PedalsManager.Update())
+            double triggerThrottle = 0.0, triggerBrake = 0.0;
+            double pedalThrottle = 0.0, pedalBrake = 0.0;
+            bool pedalsConnected = false;
+
+            if (reading != null)
             {
-                // Separate pedals are merged with the wheel triggers (whichever is pressed more).
+                // Wheel / Speed Wheel triggers.
+                triggerThrottle = reading.Throttle;
+                triggerBrake = reading.Brake;
+
+                // Separate pedals (may be disabled or not connected).
+                pedalsConnected = PedalsManager.Update();
+                pedalThrottle = PedalsManager.Throttle;
+                pedalBrake = PedalsManager.Brake;
+
+                var source = SettingsManager.PedalsSource;
+                double throttle, brake;
+                switch (source)
+                {
+                    case PedalSource.WheelTriggers:
+                        throttle = triggerThrottle;
+                        brake = triggerBrake;
+                        break;
+                    case PedalSource.SeparatePedals:
+                        throttle = pedalThrottle;
+                        brake = pedalBrake;
+                        break;
+                    default:
+                        // Both (max): whichever is pressed more wins (original behaviour).
+                        throttle = Math.Max(triggerThrottle, pedalThrottle);
+                        brake = Math.Max(triggerBrake, pedalBrake);
+                        break;
+                }
+
                 reading = reading with
                 {
-                    Throttle = Math.Max(reading.Throttle, PedalsManager.Throttle),
-                    Brake = Math.Max(reading.Brake, PedalsManager.Brake),
+                    Throttle = Math.Clamp(throttle, 0.0, 1.0),
+                    Brake = Math.Clamp(brake, 0.0, 1.0),
                 };
             }
 
             Volatile.Write(ref _lastReading, reading);
             if (reading == null) return;
 
-            LogAxesIfChanged(reading);
+            // Final processing: raw -> dead zone/rotation/sensitivity -> anti-deadzone -> output.
+            double outSteering = ApplySteeringOutput(reading.Steering);
+            double outThrottle = ApplyThrottleOutput(reading.Throttle);
+            double outBrake = ApplyBrakeOutput(reading.Brake);
+
+            Volatile.Write(ref _lastOutSteering, outSteering);
+            Volatile.Write(ref _lastOutThrottle, outThrottle);
+            Volatile.Write(ref _lastOutBrake, outBrake);
+            Volatile.Write(ref _lastTriggerThrottle, triggerThrottle);
+            Volatile.Write(ref _lastTriggerBrake, triggerBrake);
+            Volatile.Write(ref _lastPedalThrottle, pedalThrottle);
+            Volatile.Write(ref _lastPedalBrake, pedalBrake);
+            Volatile.Write(ref _lastPedalsConnected, pedalsConnected);
+
+            // Periodic log: raw -> processed -> what vJoy gets.
+            LogValuesIfDue(reading, triggerThrottle, triggerBrake, pedalThrottle, pedalBrake,
+                pedalsConnected, outSteering, outThrottle, outBrake);
 
             if (Injector == null && !ViGEmOutput.Connected && !VJoyOutput.Connected) return;
-
-            double adjustedWheel = ApplySensitivity(reading.Steering);
 
             Interlocked.Increment(ref _injectAttempts);
 
@@ -197,12 +271,12 @@ namespace XboxWheelCompatibility.WheelTransformer
             {
                 if (VJoyOutput.Connected)
                 {
-                    VJoyOutput.Submit(adjustedWheel, reading.Throttle, reading.Brake, reading.OutputButtons);
+                    VJoyOutput.Submit(outSteering, outThrottle, outBrake, reading.OutputButtons);
                 }
 
                 if (ViGEmOutput.Connected)
                 {
-                    ViGEmOutput.Submit(reading.OutputButtons, reading.Brake, reading.Throttle, adjustedWheel);
+                    ViGEmOutput.Submit(reading.OutputButtons, outBrake, outThrottle, outSteering);
                 }
 
                 if (Injector != null)
@@ -213,8 +287,8 @@ namespace XboxWheelCompatibility.WheelTransformer
                         new GamepadReading(
                             (ulong)DateTime.UtcNow.Ticks,
                             reading.OutputButtons,
-                            reading.Brake, reading.Throttle,
-                            adjustedWheel, 0,
+                            outBrake, outThrottle,
+                            outSteering, 0,
                             0, 0
                         )
                     )
@@ -229,22 +303,95 @@ namespace XboxWheelCompatibility.WheelTransformer
             }
         }
 
-        /// <summary>Logs raw axes at most every 2 s, only when they changed noticeably.</summary>
-        private static void LogAxesIfChanged(UnifiedReading r)
+        /// <summary>
+        /// Steering picture for the game: dead zone + rotation angle + sensitivity, then the
+        /// anti-deadzone so games with a built-in dead zone (F1 25) react right away.
+        /// </summary>
+        public static double ApplySteeringOutput(double rawSteering) =>
+            ApplyAntiDeadzone(ApplySensitivity(rawSteering), SettingsManager.SteeringAntiDeadzone);
+
+        /// <summary>Throttle as sent to the virtual devices (0..1).</summary>
+        public static double ApplyThrottleOutput(double throttle) =>
+            ApplyPedalAntiDeadzone(throttle, SettingsManager.ThrottleAntiDeadzone);
+
+        /// <summary>Brake as sent to the virtual devices (0..1).</summary>
+        public static double ApplyBrakeOutput(double brake) =>
+            ApplyPedalAntiDeadzone(brake, SettingsManager.BrakeAntiDeadzone);
+
+        /// <summary>
+        /// Anti-deadzone for a centred axis (-1..1), applied last, right before the value leaves the app:
+        /// |x| &lt; 0.001 -> 0, otherwise sign(x) * (ad + (1 - ad) * |x|). ad = 0 returns x unchanged.
+        /// </summary>
+        public static double ApplyAntiDeadzone(double x, double antiDeadzone)
+        {
+            double ad = Math.Clamp(antiDeadzone, SettingsManager.MinAntiDeadzone, SettingsManager.MaxAntiDeadzone);
+            if (ad <= 0.0) return Math.Clamp(x, -1.0, 1.0);
+            if (Math.Abs(x) < 0.001) return 0.0;
+
+            double sign = x < 0 ? -1.0 : 1.0;
+            return Math.Clamp(sign * (ad + (1.0 - ad) * Math.Abs(x)), -1.0, 1.0);
+        }
+
+        /// <summary>Same as <see cref="ApplyAntiDeadzone"/> for a 0..1 pedal value (no sign).</summary>
+        public static double ApplyPedalAntiDeadzone(double x, double antiDeadzone)
+        {
+            double v = Math.Clamp(x, 0.0, 1.0);
+            double ad = Math.Clamp(antiDeadzone, SettingsManager.MinAntiDeadzone, SettingsManager.MaxAntiDeadzone);
+            if (ad <= 0.0) return v;
+            if (v < 0.001) return 0.0;
+
+            return Math.Min(1.0, ad + (1.0 - ad) * v);
+        }
+
+        /// <summary>
+        /// Logs raw axes, the processed values and what vJoy received, at most every 3 s.
+        /// </summary>
+        private static void LogValuesIfDue(UnifiedReading r,
+            double triggerThrottle, double triggerBrake, double pedalThrottle, double pedalBrake,
+            bool pedalsConnected, double outSteering, double outThrottle, double outBrake)
         {
             long now = AxisLogTimer.ElapsedMilliseconds;
-            if (now - _lastAxisLogMs < 2000) return;
+            if (now - _lastAxisLogMs < AxisLogIntervalMs) return;
+
+            string Format(double v) => v.ToString("+0.00;-0.00;+0.00", CultureInfo.InvariantCulture);
+            string Pedal(double v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+
+            string vjoyPart;
+            if (VJoyOutput.Connected)
+            {
+                vjoyPart = string.Format(CultureInfo.InvariantCulture,
+                    "vJoy device {0} X={1} Y={2} Z={3} (mode={4}, invertThr={5}, invertBrk={6})",
+                    SettingsManager.VJoyDeviceId, VJoyOutput.LastAxisX, VJoyOutput.LastAxisY,
+                    VJoyOutput.LastAxisZ, SettingsManager.VJoyPedalAxisMode,
+                    SettingsManager.VJoyInvertThrottle, SettingsManager.VJoyInvertBrake);
+            }
+            else
+            {
+                vjoyPart = "vJoy off";
+            }
 
             string line = string.Format(CultureInfo.InvariantCulture,
-                "Axes [{0}] LX={1:+0.00;-0.00;+0.00} LY={2:+0.00;-0.00;+0.00} RX={3:+0.00;-0.00;+0.00} RY={4:+0.00;-0.00;+0.00} LT={5:0.00} RT={6:0.00} steer({7})={8:+0.00;-0.00;+0.00} thr={9:0.00} brk={10:0.00} buttons=0x{11:X4}",
-                r.Kind, r.LeftX, r.LeftY, r.RightX, r.RightY, r.LeftTrigger, r.RightTrigger,
-                r.SteeringAxisUsed, r.Steering, r.Throttle, r.Brake, r.RawButtons);
+                "Axes [{0}] raw: LX={1} LY={2} RX={3} RY={4} LT={5} RT={6} steer({7})={8} | triggers thr={9} brk={10} | pedals thr={11} brk={12} connected={13} source={14} | processed: deadzone={15} rotation={16:0}deg physical={17:0}deg sensitivity={18:0.00} anti-deadzone steer={19} thr={20} brk={21} | out: steer={22} thr={23} brk={24} buttons=0x{25:X4} | {26}",
+                r.Kind, Format(r.LeftX), Format(r.LeftY), Format(r.RightX), Format(r.RightY),
+                Pedal(r.LeftTrigger), Pedal(r.RightTrigger), r.SteeringAxisUsed, Format(r.Steering),
+                Pedal(triggerThrottle), Pedal(triggerBrake), Pedal(pedalThrottle), Pedal(pedalBrake),
+                pedalsConnected ? "yes" : "no", SettingsManager.PedalsSource,
+                Pedal(SettingsManager.DeadZone), SettingsManager.RotationDegrees, SettingsManager.PhysicalDegrees,
+                SettingsManager.Sensitivity, Pedal(SettingsManager.SteeringAntiDeadzone),
+                Pedal(SettingsManager.ThrottleAntiDeadzone), Pedal(SettingsManager.BrakeAntiDeadzone),
+                Format(outSteering), Pedal(outThrottle), Pedal(outBrake), r.RawButtons, vjoyPart);
 
-            if (line == _lastAxisLogLine) return;
-            _lastAxisLogLine = line;
+            // Always log while something moves (every 3 s); when nothing changes, log a heartbeat
+            // every 15 s so Output.log does not grow forever while the app idles.
+            bool changed = line != _lastAxisLogLine;
+            if (!changed && now - _lastAxisLogChangeMs < AxisLogHeartbeatMs) return;
+            if (changed) _lastAxisLogChangeMs = now;
             _lastAxisLogMs = now;
+            _lastAxisLogLine = line;
+
             DiagnosticsLog.Write(line);
         }
+
 
         public static void Initialize()
         {

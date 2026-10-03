@@ -42,7 +42,9 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
         public void SetSensitivity(double Sensitivity)
         {
+            double previous = SettingsManager.Sensitivity;
             SettingsManager.Sensitivity = Sensitivity;
+            LogChange($"Sensitivity change: {previous:0.00} -> {SettingsManager.Sensitivity:0.00}", previous, SettingsManager.Sensitivity);
         }
 
         public double GetDeadZone()
@@ -52,13 +54,78 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
 
         public void SetDeadZone(double DeadZone)
         {
+            double previous = SettingsManager.DeadZone;
             SettingsManager.DeadZone = DeadZone;
+            LogChange($"Dead zone change: {previous:0.00} -> {SettingsManager.DeadZone:0.00}", previous, SettingsManager.DeadZone);
         }
 
         public double GetRotationDegrees() => SettingsManager.RotationDegrees;
-        public void SetRotationDegrees(double Degrees) => SettingsManager.RotationDegrees = Degrees;
+        public void SetRotationDegrees(double Degrees)
+        {
+            double previous = SettingsManager.RotationDegrees;
+            SettingsManager.RotationDegrees = Degrees;
+            LogChange($"Rotation angle change: {previous:0} -> {SettingsManager.RotationDegrees:0} deg", previous, SettingsManager.RotationDegrees);
+        }
+
         public double GetPhysicalDegrees() => SettingsManager.PhysicalDegrees;
-        public void SetPhysicalDegrees(double Degrees) => SettingsManager.PhysicalDegrees = Degrees;
+        public void SetPhysicalDegrees(double Degrees)
+        {
+            double previous = SettingsManager.PhysicalDegrees;
+            SettingsManager.PhysicalDegrees = Degrees;
+            LogChange($"Physical turn calibration change: {previous:0} -> {SettingsManager.PhysicalDegrees:0} deg", previous, SettingsManager.PhysicalDegrees);
+        }
+
+        /// <summary>Logs a settings change only when the value really changed (no spam while dragging).</summary>
+        private static void LogChange(string message, double previous, double current)
+        {
+            if (Math.Abs(previous - current) < 0.0001) return;
+            DiagnosticsLog.Write(message);
+        }
+
+        public void SetSteeringAntiDeadzone(double AntiDeadzone)
+        {
+            double previous = SettingsManager.SteeringAntiDeadzone;
+            SettingsManager.SteeringAntiDeadzone = AntiDeadzone;
+            LogChange($"Steering anti-deadzone change: requested {AntiDeadzone:0.00}, stored {SettingsManager.SteeringAntiDeadzone:0.00} (0..0.40, 0 = off).",
+                previous, SettingsManager.SteeringAntiDeadzone);
+        }
+
+        public void SetThrottleAntiDeadzone(double AntiDeadzone)
+        {
+            double previous = SettingsManager.ThrottleAntiDeadzone;
+            SettingsManager.ThrottleAntiDeadzone = AntiDeadzone;
+            LogChange($"Throttle anti-deadzone change: requested {AntiDeadzone:0.00}, stored {SettingsManager.ThrottleAntiDeadzone:0.00} (0..0.40, 0 = off).",
+                previous, SettingsManager.ThrottleAntiDeadzone);
+        }
+
+        public void SetBrakeAntiDeadzone(double AntiDeadzone)
+        {
+            double previous = SettingsManager.BrakeAntiDeadzone;
+            SettingsManager.BrakeAntiDeadzone = AntiDeadzone;
+            LogChange($"Brake anti-deadzone change: requested {AntiDeadzone:0.00}, stored {SettingsManager.BrakeAntiDeadzone:0.00} (0..0.40, 0 = off).",
+                previous, SettingsManager.BrakeAntiDeadzone);
+        }
+
+        public void SetPedalsSource(int Source)
+        {
+            SettingsManager.PedalsSource = (PedalSource)Source;
+            DiagnosticsLog.Write("Pedal source set to " + SettingsManager.PedalsSource
+                + " (0 = wheel triggers, 1 = separate pedals, 2 = both max)");
+        }
+
+        public void SetVJoyPedalAxisMode(int Mode)
+        {
+            SettingsManager.VJoyPedalAxisMode = (VJoyPedalMode)Mode;
+            DiagnosticsLog.Write("vJoy pedal axis mode set to " + SettingsManager.VJoyPedalAxisMode
+                + " (0 = separate Y/Z axes, 1 = centred Y axis)");
+        }
+
+        public void SetVJoyAxisInvert(bool InvertThrottle, bool InvertBrake)
+        {
+            SettingsManager.VJoyInvertThrottle = InvertThrottle;
+            SettingsManager.VJoyInvertBrake = InvertBrake;
+            DiagnosticsLog.Write($"vJoy axis invert: throttle={SettingsManager.VJoyInvertThrottle}, brake={SettingsManager.VJoyInvertBrake}");
+        }
 
         public DeviceStatus GetDeviceStatus()
         {
@@ -75,7 +142,13 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 VJoyEnabled = SettingsManager.VJoyEnabled,
                 VJoyDeviceId = SettingsManager.VJoyDeviceId,
                 VJoyStatus = VJoyOutput.Status,
+                VJoyPedalAxisMode = (int)SettingsManager.VJoyPedalAxisMode,
+                VJoyInvertThrottle = SettingsManager.VJoyInvertThrottle,
+                VJoyInvertBrake = SettingsManager.VJoyInvertBrake,
+                VJoyAxisWarning = VJoyOutput.AxisWarning.Length > 0,
+                VJoyAxisMessage = VJoyOutput.AxisWarning,
                 RotationDegrees = SettingsManager.RotationDegrees,
+                SteeringAntiDeadzone = SettingsManager.SteeringAntiDeadzone,
                 ScanLines = WheelManager.LastScan,
                 RecentLog = DiagnosticsLog.GetRecent(12),
                 LogPath = DiagnosticsLog.OutputLogPath + "  |  " + DiagnosticsLog.LogPath,
@@ -123,6 +196,9 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
                 Center = SettingsManager.PedalsCenter,
                 ThrottleRange = SettingsManager.ThrottleRange,
                 BrakeRange = SettingsManager.BrakeRange,
+                Source = (int)SettingsManager.PedalsSource,
+                ThrottleAntiDeadzone = SettingsManager.ThrottleAntiDeadzone,
+                BrakeAntiDeadzone = SettingsManager.BrakeAntiDeadzone,
                 RawAxes = PedalsManager.RawAxes,
                 Throttle = PedalsManager.Throttle,
                 Brake = PedalsManager.Brake,
@@ -138,7 +214,7 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             SettingsManager.PedalsDeadZone = DeadZone;
             SettingsManager.PedalsEnabled = Enabled;
             if (changedDevice) PedalsManager.Scan(force: true);
-            DiagnosticsLog.Write($"Pedals: enabled={Enabled} device='{DeviceKey}' axis={Axis} swap={Swap} deadzone={DeadZone:0.00}");
+            DiagnosticsLog.Write($"Pedals: enabled={Enabled} device='{DeviceKey}' axis={Axis} swap={Swap} deadzone={DeadZone:0.00} source={SettingsManager.PedalsSource}");
         }
 
         public string CalibratePedalsCenter() => PedalsManager.CalibrateCenter();
@@ -147,13 +223,14 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
         {
             SettingsManager.ThrottleRange = ThrottleRange;
             SettingsManager.BrakeRange = BrakeRange;
+            DiagnosticsLog.Write($"Pedal range: throttle 100% at {SettingsManager.ThrottleRange:0.00}, brake 100% at {SettingsManager.BrakeRange:0.00}");
         }
 
         public void SetVJoy(bool Enabled, int DeviceId)
         {
             SettingsManager.VJoyDeviceId = DeviceId;
             SettingsManager.VJoyEnabled = Enabled;
-            DiagnosticsLog.Write($"vJoy wheel {(Enabled ? "enabled" : "disabled")} (device {SettingsManager.VJoyDeviceId})");
+            DiagnosticsLog.Write($"vJoy wheel {(Enabled ? "enabled" : "disabled")} (device {SettingsManager.VJoyDeviceId}, pedal mode {SettingsManager.VJoyPedalAxisMode}, invert throttle={SettingsManager.VJoyInvertThrottle} brake={SettingsManager.VJoyInvertBrake})");
             InjectionManager.ReconfigureOutputs();
         }
 
@@ -205,9 +282,17 @@ namespace XboxWheelCompatibility.WheelCompatibilityService
             {
                 HasWheel = true,
                 Wheel = reading.Steering,
-                WheelAdjusted = InjectionManager.ApplySensitivity(reading.Steering),
-                Throttle = reading.Throttle,
-                Brake = reading.Brake,
+                // Values the injection loop actually sent, so the tester shows what the game receives
+                // (dead zone -> rotation angle -> sensitivity -> anti-deadzone).
+                WheelAdjusted = InjectionManager.LastOutSteering,
+                Throttle = InjectionManager.LastOutThrottle,
+                Brake = InjectionManager.LastOutBrake,
+                TriggerThrottle = InjectionManager.LastTriggerThrottle,
+                TriggerBrake = InjectionManager.LastTriggerBrake,
+                PedalThrottle = InjectionManager.LastPedalThrottle,
+                PedalBrake = InjectionManager.LastPedalBrake,
+                PedalsConnected = InjectionManager.LastPedalsConnected,
+                PedalSource = (int)SettingsManager.PedalsSource,
                 Clutch = reading.Clutch,
                 Handbrake = reading.Handbrake,
                 Buttons = reading.RawButtons,
