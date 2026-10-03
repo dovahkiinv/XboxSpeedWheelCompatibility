@@ -165,11 +165,41 @@
                 Margin="0,2,0,2" />
         <TextBlock Text="Turn the wheel until 'Wheel input' shows ±1.00 and set here how many degrees that was. Speed Wheel ≈ 90°."
                    FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Steering anti-deadzone" Padding="0,2" />
+            <Label Grid.Column="1" x:Name="SteeringAntiDeadzoneLabel" Content="0%" MinWidth="40" HorizontalContentAlignment="Right" Padding="0,2" />
+        </Grid>
+        <Slider x:Name="SteeringAntiDeadzoneSlider"
+                Minimum="0"
+                Maximum="40"
+                Value="0"
+                TickFrequency="1"
+                IsSnapToTickEnabled="True"
+                SmallChange="1"
+                LargeChange="5"
+                ValueChanged="SteeringAntiDeadzoneSlider_ValueChanged"
+                Margin="0,2,0,2" />
+        <TextBlock Text="0% = off. Pushes the axis away from centre so games with a built-in dead zone (F1 25: about 15-20%) react immediately. Applied last, after dead zone, rotation angle and sensitivity, to vJoy, ViGEm and InputInjector."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
         </StackPanel>
 
         <Separator Grid.Row="5" Margin="0,10,0,6" />
 
-        <Label Grid.Row="6" Content="Live input tester" FontWeight="SemiBold" Padding="0" />
+        <Grid Grid.Row="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Live input tester" FontWeight="SemiBold" Padding="0" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Open joy.cpl" Padding="8,2" FontSize="11"
+                    ToolTip="Opens the Windows Game Controllers panel (joy.cpl) so you can test the wheel, the pedals and the vJoy device."
+                    Click="JoyCplButton_Click" />
+        </Grid>
 
         <StackPanel Grid.Row="7" Margin="0,4,0,0">
             <!-- Two steering wheel icons: raw input and post-sensitivity game output -->
@@ -198,7 +228,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                    <TextBlock Text="Game output" HorizontalAlignment="Center" FontSize="11" Foreground="#444" ToolTip="What the game sees after the sensitivity curve is applied." />
+                    <TextBlock Text="Game output" HorizontalAlignment="Center" FontSize="11" Foreground="#444" ToolTip="What the game sees: dead zone, rotation angle and sensitivity, then the steering anti-deadzone." />
                     <Grid Width="100" Height="100" RenderTransformOrigin="0.5,0.5" Margin="0,4,0,2">
                         <Grid.RenderTransform>
                             <RotateTransform x:Name="WheelOutputRotation" Angle="0" />
@@ -216,29 +246,71 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Throttle bar (0..1) -->
-            <Grid Margin="0,4,0,2">
+            <!-- Throttle: final value sent to the game, plus the two sources -->
+            <Grid Margin="0,6,0,2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="60" />
+                    <ColumnDefinition Width="105" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="60" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Throttle" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="Throttle → game" VerticalAlignment="Center" FontWeight="SemiBold" />
                 <ProgressBar Grid.Column="1" x:Name="ThrottleBar" Minimum="0" Maximum="1" Value="0" Height="18" Foreground="#2EA84F" />
                 <TextBlock Grid.Column="2" x:Name="ThrottleValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" />
             </Grid>
-
-            <!-- Brake bar (0..1) -->
-            <Grid Margin="0,4,0,2">
+            <Grid Margin="0,2,0,2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="60" />
+                    <ColumnDefinition Width="105" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="60" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Brake" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="  from triggers" VerticalAlignment="Center" FontSize="11" Foreground="#444" />
+                <ProgressBar Grid.Column="1" x:Name="ThrottleTriggerBar" Minimum="0" Maximum="1" Value="0" Height="12" Foreground="#7FCB96" />
+                <TextBlock Grid.Column="2" x:Name="ThrottleTriggerValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" />
+            </Grid>
+            <Grid Margin="0,2,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="60" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="  from pedals" VerticalAlignment="Center" FontSize="11" Foreground="#444" />
+                <ProgressBar Grid.Column="1" x:Name="ThrottlePedalBar" Minimum="0" Maximum="1" Value="0" Height="12" Foreground="#7FCB96" />
+                <TextBlock Grid.Column="2" x:Name="ThrottlePedalValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" />
+            </Grid>
+
+            <!-- Brake: final value sent to the game, plus the two sources -->
+            <Grid Margin="0,6,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="60" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Brake → game" VerticalAlignment="Center" FontWeight="SemiBold" />
                 <ProgressBar Grid.Column="1" x:Name="BrakeBar" Minimum="0" Maximum="1" Value="0" Height="18" Foreground="#D62828" />
                 <TextBlock Grid.Column="2" x:Name="BrakeValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" />
             </Grid>
+            <Grid Margin="0,2,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="60" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="  from triggers" VerticalAlignment="Center" FontSize="11" Foreground="#444" />
+                <ProgressBar Grid.Column="1" x:Name="BrakeTriggerBar" Minimum="0" Maximum="1" Value="0" Height="12" Foreground="#E89999" />
+                <TextBlock Grid.Column="2" x:Name="BrakeTriggerValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" />
+            </Grid>
+            <Grid Margin="0,2,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="60" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="  from pedals" VerticalAlignment="Center" FontSize="11" Foreground="#444" />
+                <ProgressBar Grid.Column="1" x:Name="BrakePedalBar" Minimum="0" Maximum="1" Value="0" Height="12" Foreground="#E89999" />
+                <TextBlock Grid.Column="2" x:Name="BrakePedalValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" />
+            </Grid>
+            <TextBlock x:Name="PedalSourceHint" Text="Throttle/brake source: Both (max) — change it on the Pedals tab. Bars show the raw trigger/pedal values; the bold bars are the final values sent to the game (after anti-deadzone)."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0" />
 
             <!-- Clutch + Handbrake bars (some wheels expose these) -->
             <Grid Margin="0,4,0,2">
@@ -393,7 +465,7 @@
             <StackPanel Margin="12">
                 <TextBlock Text="Separate pedals" FontSize="14" FontWeight="SemiBold" />
                 <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
-                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. Pedals are merged with the Speed Wheel triggers (whichever is pressed more wins)." />
+                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. Choose below whether throttle/brake come from the Speed Wheel triggers, the pedals, or both." />
 
                 <CheckBox x:Name="PedalsEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold" Content="Use separate pedals"
                           Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
@@ -422,6 +494,15 @@
                     <CheckBox Grid.Row="2" Grid.Column="1" x:Name="PedalsSwapCheck" Margin="0,4" Content="Swap throttle / brake"
                               Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
                 </Grid>
+
+                <TextBlock Text="Throttle/brake source" Margin="0,10,0,2" />
+                <ComboBox x:Name="PedalsSourceCombo" SelectionChanged="PedalsSourceCombo_SelectionChanged">
+                    <ComboBoxItem Content="Wheel triggers (Speed Wheel RT = throttle, LT = brake)" />
+                    <ComboBoxItem Content="Separate pedals only" />
+                    <ComboBoxItem Content="Both (stronger one wins)" />
+                </ComboBox>
+                <TextBlock Text="Default: Both — the pedal and the trigger are compared and the stronger one is used."
+                           FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,0" />
 
                 <Grid Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>
@@ -463,6 +544,31 @@
                 </StackPanel>
                 <TextBlock Text="50% = full throttle / full brake already when the pedal is pressed halfway." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
 
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Throttle anti-deadzone" />
+                    <TextBlock Grid.Column="1" x:Name="ThrottleAntiDeadzoneLabel" Text="0%" />
+                </Grid>
+                <Slider x:Name="ThrottleAntiDeadzoneSlider" Minimum="0" Maximum="40" Value="0"
+                        TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5"
+                        ValueChanged="ThrottleAntiDeadzoneSlider_ValueChanged" Margin="0,2" />
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brake anti-deadzone" />
+                    <TextBlock Grid.Column="1" x:Name="BrakeAntiDeadzoneLabel" Text="0%" />
+                </Grid>
+                <Slider x:Name="BrakeAntiDeadzoneSlider" Minimum="0" Maximum="40" Value="0"
+                        TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5"
+                        ValueChanged="BrakeAntiDeadzoneSlider_ValueChanged" Margin="0,2" />
+                <TextBlock Text="0% = off. These push throttle/brake away from zero at the very end, so games with a built-in pedal dead zone start reacting as soon as you touch the pedal (applies to the merged value sent to vJoy, ViGEm and InputInjector)."
+                           FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,0" />
+
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                     <Button x:Name="PedalsCalibrateButton" Content="Calibrate center" Padding="8,3" Click="PedalsCalibrateButton_Click" />
                     <TextBlock x:Name="PedalsCenterText" Text="" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" />
@@ -470,7 +576,7 @@
                 <TextBlock Text="Release both pedals and click to store the rest position." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
 
                 <Separator Margin="0,12,0,8" />
-                <TextBlock Text="Live" FontWeight="SemiBold" />
+                <TextBlock Text="Live (pedal values, before merging with the triggers)" FontWeight="SemiBold" />
                 <Grid Margin="0,4,0,2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="60" />
@@ -491,6 +597,8 @@
                     <ProgressBar Grid.Column="1" x:Name="PedalBrakeBar" Minimum="0" Maximum="1" Height="16" Foreground="#D62828" />
                     <TextBlock Grid.Column="2" x:Name="PedalBrakeText" Text="0%" HorizontalAlignment="Right" FontFamily="Consolas" />
                 </Grid>
+                <TextBlock Text="The final values sent to the game (source selection + anti-deadzone) are shown on the Main tab."
+                           FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
                 <TextBlock x:Name="PedalsRawText" FontFamily="Consolas" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" Text="-" />
                 <TextBlock Text="Press each pedal: the axis that moves is your pedal axis." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
                 <TextBlock x:Name="PedalsStatusText" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
@@ -503,7 +611,7 @@
             <StackPanel Margin="12">
                 <TextBlock Text="Virtual steering wheel for games" FontSize="14" FontWeight="SemiBold" />
                 <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
-                           Text="Creates a vJoy DirectInput device that games can bind as a steering wheel: X axis = steering, Y axis = throttle, Z axis = brake (separate pedals), buttons 1-14." />
+                           Text="Creates a vJoy DirectInput device that games can bind as a steering wheel: X axis = steering, Y axis = throttle, Z axis = brake, buttons 1-14. Pedals can also be mapped to one centred Y axis." />
 
                 <CheckBox x:Name="VJoyEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold"
                           Content="Enable virtual wheel (vJoy)"
@@ -512,11 +620,32 @@
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <TextBlock Text="vJoy device" VerticalAlignment="Center" Width="90" />
                     <ComboBox x:Name="VJoyDeviceCombo" Width="80" SelectionChanged="VJoyDeviceCombo_SelectionChanged" />
+                    <Button Content="Open joy.cpl" Padding="8,2" Margin="8,0,0,0" FontSize="11"
+                            ToolTip="Test the vJoy device and the real wheel in the Windows Game Controllers panel (joy.cpl)."
+                            Click="JoyCplButton_Click" />
                 </StackPanel>
 
                 <Border Margin="0,10,0,0" Padding="6,4" CornerRadius="3" Background="#F0F0F0" BorderBrush="#B0B0B0" BorderThickness="1">
                     <TextBlock x:Name="VJoyStatusText" Text="Off" TextWrapping="Wrap" FontSize="11" />
                 </Border>
+
+                <Border x:Name="VJoyAxisWarningBorder" Margin="0,8,0,0" Padding="6,4" CornerRadius="3"
+                        Background="#FDE0E0" BorderBrush="#D62828" BorderThickness="1" Visibility="Collapsed">
+                    <TextBlock x:Name="VJoyAxisWarningText" TextWrapping="Wrap" FontSize="11" Foreground="#8B1A1A" />
+                </Border>
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Pedal axes in vJoy" FontWeight="SemiBold" />
+                <ComboBox x:Name="VJoyPedalModeCombo" Margin="0,6,0,0" SelectionChanged="VJoyPedalModeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Separate axes (Y = throttle, Z = brake, rest = minimum)" />
+                    <ComboBoxItem Content="Combined axis (Y centred: up = throttle, down = brake, Z = 0)" />
+                </ComboBox>
+                <CheckBox x:Name="VJoyInvertThrottleCheck" Content="Invert throttle axis" Margin="0,6,0,0"
+                          Checked="VJoyAxisInvert_Changed" Unchecked="VJoyAxisInvert_Changed" />
+                <CheckBox x:Name="VJoyInvertBrakeCheck" Content="Invert brake axis" Margin="0,2,0,0"
+                          Checked="VJoyAxisInvert_Changed" Unchecked="VJoyAxisInvert_Changed" />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Margin="0,4,0,0"
+                           Text="Separate axes: bind throttle = Y, brake = Z in the game (vJoy axes rest at their minimum). Combined axis: bind ONLY the Y axis — middle = nothing, up = throttle, down = brake (the Z axis stays at 0). Invert if the pedal works the other way round." />
 
                 <Separator Margin="0,12,0,8" />
                 <TextBlock Text="Rotation angle of the virtual wheel" FontWeight="SemiBold" />
@@ -529,7 +658,7 @@
                     <Button Content="900°" Padding="8,2" Margin="0,0,4,0" Tag="900" Click="RotationPreset_Click" />
                 </StackPanel>
                 <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Margin="0,4,0,0"
-                           Text="The full X axis equals half of this angle to each side. With 180° the game gets full lock when you turn the Speed Wheel 90° left/right. If the game has its own 'wheel rotation' / 'steering lock' setting, set it to the same value (180°). Dead zone, calibration and sensitivity from the Main tab are applied too." />
+                           Text="The full X axis equals half of this angle to each side. With 180° the game gets full lock when you turn the Speed Wheel 90° left/right. If the game has its own 'wheel rotation' / 'steering lock' setting, set it to the same value (180°). Dead zone, calibration, sensitivity and the anti-deadzone from the Main tab are applied too." />
 
                 <Separator Margin="0,12,0,8" />
                 <TextBlock Text="Setup" FontWeight="SemiBold" />
@@ -537,8 +666,9 @@
                     1. Install vJoy (github.com/BrunnerInnovation/vJoy/releases) and reboot.<LineBreak />
                     2. Open 'Configure vJoy', device 1: enable axes X, Y, Z, set Buttons = 16, POVs = 0, click Apply.<LineBreak />
                     3. Tick 'Enable virtual wheel (vJoy)' above.<LineBreak />
-                    4. Main tab: set 'Virtual output' to 'None (vJoy wheel only)' so the game does not also see a gamepad, and tick 'Hide real Speed Wheel' (HidHide).<LineBreak />
-                    5. In the game choose the vJoy device and bind: steering = X axis, throttle = Y axis, brake = Z axis, gears = buttons 5/6.
+                    4. Click 'Open joy.cpl': the vJoy device must be listed and the axes must move. If an axis is missing, the red warning above the status box tells you which one to enable in 'Configure vJoy'.<LineBreak />
+                    5. Main tab: set 'Virtual output' to 'None (vJoy wheel only)' so the game does not also see a gamepad, and tick 'Hide real Speed Wheel' (HidHide).<LineBreak />
+                    6. In the game choose the vJoy device and bind: steering = X axis, throttle = Y axis, brake = Z axis, gears = buttons 5/6. With 'Combined axis' bind only Y (throttle up, brake down).
                 </TextBlock>
                 <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#8B1A1A" Margin="0,8,0,0"
                            Text="Note: some games (e.g. official F1 titles) only list wheels they know by name; they may treat vJoy as a generic device where you bind axes manually. CarX and most sims accept any DirectInput wheel." />

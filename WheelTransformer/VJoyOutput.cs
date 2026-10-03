@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Windows.Gaming.Input;
@@ -10,6 +12,9 @@ namespace XboxWheelCompatibility.WheelTransformer
     /// or the original jshafer817/vJoy). Games see a device with separate axes:
     ///   X = steering (full axis = half of the configured rotation angle to each side, e.g. ±90° at 180°),
     ///   Y = throttle, Z = brake, buttons 1-14.
+    /// Two pedal modes (see <see cref="VJoyPedalMode"/>): separate Y/Z axes (default, pedal at rest = axis
+    /// minimum) or one centred Y axis (middle = nothing, up = throttle, down = brake, Z = 0).
+    /// Each pedal axis can be inverted independently.
     /// Configure the vJoy device in "Configure vJoy" with axes X, Y, Z and at least 14 buttons.
     /// </summary>
     public static class VJoyOutput
@@ -35,10 +40,27 @@ namespace XboxWheelCompatibility.WheelTransformer
         private static uint _deviceId;
         private static int _axisMax = 32767;
         private static int _buttonCount;
-        private static bool _hasY, _hasZ;
+        private static bool _hasX, _hasY, _hasZ;
+
+        private static readonly Stopwatch AxisCheckTimer = Stopwatch.StartNew();
+        private static long _lastAxisCheckMs = -100000;
 
         public static bool Connected { get; private set; }
         public static string Status { get; private set; } = "Off";
+
+        /// <summary>Which axes the vJoy device really has (checked with GetVJDAxisExist).</summary>
+        public static bool HasX => _hasX;
+        public static bool HasY => _hasY;
+        public static bool HasZ => _hasZ;
+
+        /// <summary>Empty when all axes exist; otherwise what to enable in "Configure vJoy".</summary>
+        public static string AxisWarning { get; private set; } = "";
+
+        /// <summary>Last axis values written to the vJoy device (for the live log / GUI).</summary>
+        public static int LastAxisX { get; private set; }
+        public static int LastAxisY { get; private set; }
+        public static int LastAxisZ { get; private set; }
+        public static int AxisMaximum => _axisMax;
 
         private static bool EnsureLibrary()
         {
@@ -103,15 +125,19 @@ namespace XboxWheelCompatibility.WheelTransformer
                 _deviceId = id;
                 int max = 0;
                 _axisMax = GetVJDAxisMax(id, HID_USAGE_X, ref max) && max > 0 ? max : 32767;
+                _hasX = GetVJDAxisExist(id, HID_USAGE_X);
                 _hasY = GetVJDAxisExist(id, HID_USAGE_Y);
                 _hasZ = GetVJDAxisExist(id, HID_USAGE_Z);
                 _buttonCount = GetVJDButtonNumber(id);
+                _lastAxisCheckMs = AxisCheckTimer.ElapsedMilliseconds;
                 Connected = true;
 
                 Status = $"vJoy wheel active on device {id} (X = steering{(_hasY ? ", Y = throttle" : "")}{(_hasZ ? ", Z = brake" : "")}, {_buttonCount} buttons).";
-                if (!_hasY || !_hasZ || _buttonCount < 14)
+                if (!_hasX || !_hasY || !_hasZ || _buttonCount < 14)
                     Status += " Tip: enable axes X, Y, Z and 14 buttons in 'Configure vJoy' for full mapping.";
                 DiagnosticsLog.Write("vJoy: " + Status);
+
+                UpdateAxisWarning(logAlways: true);
                 return Status;
             }
             catch (Exception ex)
@@ -134,7 +160,59 @@ namespace XboxWheelCompatibility.WheelTransformer
             catch { }
             Connected = false;
             Status = "Off";
+            _hasX = _hasY = _hasZ = false;
+            AxisWarning = "";
             DiagnosticsLog.Write("vJoy: released device " + _deviceId);
+        }
+
+        /// <summary>
+        /// Builds the "enable axis X in Configure vJoy" warning shown in the configurator and the log.
+        /// </summary>
+        private static void UpdateAxisWarning(bool logAlways)
+        {
+            var missing = new List<string>();
+            if (!_hasX) missing.Add("X (steering), włącz oś X w Configure vJoy");
+            if (!_hasY) missing.Add("Y (throttle), włącz oś Y w Configure vJoy");
+            if (!_hasZ) missing.Add("Z (brake), włącz oś Z w Configure vJoy");
+
+            string warning = missing.Count == 0
+                ? ""
+                : $"WARNING: vJoy device {_deviceId} is missing axis: {string.Join("; ", missing)}. Enable the missing axes in 'Configure vJoy' (włącz oś X/Y/Z w Configure vJoy).";
+
+            bool changed = warning != AxisWarning;
+            AxisWarning = warning;
+
+            if (warning.Length > 0 && (logAlways || changed))
+            {
+                DiagnosticsLog.Write("vJoy: " + warning);
+            }
+            else if (warning.Length == 0 && changed && logAlways)
+            {
+                DiagnosticsLog.Write($"vJoy: device {_deviceId} has all axes X, Y, Z.");
+            }
+        }
+
+        /// <summary>Re-checks the axis configuration every 5 s (the user may enable axes without restarting).</summary>
+        private static void VerifyAxes()
+        {
+            if (!Connected) return;
+
+            long now = AxisCheckTimer.ElapsedMilliseconds;
+            if (now - _lastAxisCheckMs < 5000) return;
+            _lastAxisCheckMs = now;
+
+            try
+            {
+                bool x = GetVJDAxisExist(_deviceId, HID_USAGE_X);
+                bool y = GetVJDAxisExist(_deviceId, HID_USAGE_Y);
+                bool z = GetVJDAxisExist(_deviceId, HID_USAGE_Z);
+                if (x == _hasX && y == _hasY && z == _hasZ) return;
+
+                _hasX = x; _hasY = y; _hasZ = z;
+                DiagnosticsLog.Write($"vJoy: axis check changed (X={x}, Y={y}, Z={z}).");
+                UpdateAxisWarning(logAlways: true);
+            }
+            catch { }
         }
 
         private static int ToCenteredAxis(double v) => (int)Math.Round((Math.Clamp(v, -1.0, 1.0) + 1.0) / 2.0 * _axisMax);
@@ -145,9 +223,33 @@ namespace XboxWheelCompatibility.WheelTransformer
             if (!Connected) return;
             uint id = _deviceId;
 
-            SetAxis(ToCenteredAxis(steering), id, HID_USAGE_X);
-            if (_hasY) SetAxis(ToPedalAxis(throttle), id, HID_USAGE_Y);
-            if (_hasZ) SetAxis(ToPedalAxis(brake), id, HID_USAGE_Z);
+            VerifyAxes();
+
+            // Steering: X, centred (half of the configured rotation angle to each side).
+            LastAxisX = ToCenteredAxis(steering);
+            SetAxis(LastAxisX, id, HID_USAGE_X);
+
+            // Pedals: separate Y/Z axes (rest = minimum) or one centred Y axis (up = throttle,
+            // down = brake, Z = 0). Axes can be inverted individually.
+            double thr = Math.Clamp(throttle, 0.0, 1.0);
+            double brk = Math.Clamp(brake, 0.0, 1.0);
+            if (SettingsManager.VJoyInvertThrottle) thr = 1.0 - thr;
+            if (SettingsManager.VJoyInvertBrake) brk = 1.0 - brk;
+
+            if (SettingsManager.VJoyPedalAxisMode == VJoyPedalMode.CombinedAxis)
+            {
+                // Middle = nothing, up = throttle, down = brake.
+                LastAxisY = ToCenteredAxis(thr - brk);
+                LastAxisZ = 0;
+            }
+            else
+            {
+                LastAxisY = ToPedalAxis(thr);
+                LastAxisZ = ToPedalAxis(brk);
+            }
+
+            if (_hasY) SetAxis(LastAxisY, id, HID_USAGE_Y);
+            if (_hasZ) SetAxis(LastAxisZ, id, HID_USAGE_Z);
 
             void Btn(byte n, GamepadButtons flag)
             {

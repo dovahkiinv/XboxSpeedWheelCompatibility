@@ -20,6 +20,20 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetRotationDegrees(double Degrees);
         public double GetPhysicalDegrees();
         public void SetPhysicalDegrees(double Degrees);
+
+        /// <summary>Anti-deadzone applied last (before the values leave the app), 0..0.40. 0 = off.</summary>
+        public void SetSteeringAntiDeadzone(double AntiDeadzone);
+        public void SetThrottleAntiDeadzone(double AntiDeadzone);
+        public void SetBrakeAntiDeadzone(double AntiDeadzone);
+
+        /// <summary>Throttle/brake source: 0 = wheel triggers, 1 = separate pedals, 2 = both (max).</summary>
+        public void SetPedalsSource(int Source);
+
+        /// <summary>vJoy pedal mapping: 0 = separate Y/Z axes, 1 = one centred Y axis.</summary>
+        public void SetVJoyPedalAxisMode(int Mode);
+        /// <summary>Invert the vJoy throttle / brake axis independently.</summary>
+        public void SetVJoyAxisInvert(bool InvertThrottle, bool InvertBrake);
+
         public WheelReadingSnapshot GetReadingSnapshot();
         public InjectionDiagnostics GetInjectionDiagnostics();
 

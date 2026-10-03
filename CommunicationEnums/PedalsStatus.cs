@@ -24,8 +24,16 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public double ThrottleRange { get; set; } = 1.0;
         public double BrakeRange { get; set; } = 1.0;
 
+        /// <summary>Throttle/brake source: 0 = wheel triggers, 1 = separate pedals, 2 = both (max).</summary>
+        public int Source { get; set; } = 2;
+        /// <summary>Throttle anti-deadzone 0..0.40 (fraction). 0 = off.</summary>
+        public double ThrottleAntiDeadzone { get; set; }
+        /// <summary>Brake anti-deadzone 0..0.40 (fraction). 0 = off.</summary>
+        public double BrakeAntiDeadzone { get; set; }
+
         /// <summary>Raw axes 0..1 (X, Y, Z, R, U, V).</summary>
         public double[] RawAxes { get; set; } = new double[6];
+        /// <summary>Pedal-derived throttle / brake before merging with the triggers.</summary>
         public double Throttle { get; set; }
         public double Brake { get; set; }
     }

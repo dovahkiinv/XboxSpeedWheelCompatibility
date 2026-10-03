@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,9 +68,17 @@ namespace WheelCompatibilityConfigurator
                         HideXInputCheck.IsChecked = status.HideXInputInterface;
                         VJoyEnabledCheck.IsChecked = status.VJoyEnabled;
                         VJoyDeviceCombo.SelectedIndex = Math.Clamp(status.VJoyDeviceId, 1, 16) - 1;
+                        VJoyPedalModeCombo.SelectedIndex = Math.Clamp(status.VJoyPedalAxisMode, 0, 1);
+                        VJoyInvertThrottleCheck.IsChecked = status.VJoyInvertThrottle;
+                        VJoyInvertBrakeCheck.IsChecked = status.VJoyInvertBrake;
+                        SteeringAntiDeadzoneSlider.Value = Math.Round(Math.Clamp(status.SteeringAntiDeadzone, 0.0, 0.40) * 100.0);
+                        SteeringAntiDeadzoneLabel.Content = $"{SteeringAntiDeadzoneSlider.Value:0}%";
                         SuppressDeviceEvents = false;
                         DeviceSettingsLoaded = true;
                     }
+
+                    VJoyAxisWarningBorder.Visibility = status.VJoyAxisWarning ? Visibility.Visible : Visibility.Collapsed;
+                    VJoyAxisWarningText.Text = status.VJoyAxisMessage;
 
                     ScanText.Text = status.ScanLines.Length == 0
                         ? "No RacingWheel, XInput or Gamepad devices found."
@@ -108,6 +117,48 @@ namespace WheelCompatibilityConfigurator
             if (SuppressDeviceEvents || SteeringAxisCombo.SelectedIndex < 0) return;
             int axis = SteeringAxisCombo.SelectedIndex;
             _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAxis(axis));
+        }
+
+        /// <summary>Opens the Windows "Game Controllers" panel so the wheel, pedals and vJoy can be tested.</summary>
+        private void JoyCplButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("joy.cpl") { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not open joy.cpl: " + ex.Message + Environment.NewLine +
+                    "Open it manually with Win+R and typing: joy.cpl",
+                    "Xbox Wheel Compatibility", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void SteeringAntiDeadzoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (SteeringAntiDeadzoneLabel == null) return;
+            double percent = Math.Round(e.NewValue);
+            SteeringAntiDeadzoneLabel.Content = $"{percent:0}%";
+            if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
+
+            double value = Math.Round(percent / 100.0, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAntiDeadzone(value));
+        }
+
+        private void VJoyPedalModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SuppressDeviceEvents || !DeviceSettingsLoaded || VJoyPedalModeCombo.SelectedIndex < 0) return;
+            int mode = Math.Clamp(VJoyPedalModeCombo.SelectedIndex, 0, 1);
+            _ = Task.Run(() => ServiceCommunicator.TrySetVJoyPedalAxisMode(mode));
+        }
+
+        private void VJoyAxisInvert_Changed(object sender, RoutedEventArgs e)
+        {
+            if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
+            bool invertThrottle = VJoyInvertThrottleCheck.IsChecked == true;
+            bool invertBrake = VJoyInvertBrakeCheck.IsChecked == true;
+            _ = Task.Run(() => ServiceCommunicator.TrySetVJoyAxisInvert(invertThrottle, invertBrake));
         }
 
         private async void HideRealDeviceCheck_Changed(object sender, RoutedEventArgs e)
@@ -177,6 +228,11 @@ namespace WheelCompatibilityConfigurator
                     BrakeRangeSlider.Value = st.BrakeRange;
                     ThrottleRangeLabel.Text = $"{st.ThrottleRange * 100:0}%";
                     BrakeRangeLabel.Text = $"{st.BrakeRange * 100:0}%";
+                    PedalsSourceCombo.SelectedIndex = Math.Clamp(st.Source, 0, 2);
+                    ThrottleAntiDeadzoneSlider.Value = Math.Round(Math.Clamp(st.ThrottleAntiDeadzone, 0.0, 0.40) * 100.0);
+                    BrakeAntiDeadzoneSlider.Value = Math.Round(Math.Clamp(st.BrakeAntiDeadzone, 0.0, 0.40) * 100.0);
+                    ThrottleAntiDeadzoneLabel.Text = $"{ThrottleAntiDeadzoneSlider.Value:0}%";
+                    BrakeAntiDeadzoneLabel.Text = $"{BrakeAntiDeadzoneSlider.Value:0}%";
                     PedalsLoaded = true;
                 }
             }
@@ -214,6 +270,35 @@ namespace WheelCompatibilityConfigurator
         private void PedalsSettings_Changed(object sender, RoutedEventArgs e) => SendPedalsSettings();
 
         private void PedalsCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => SendPedalsSettings();
+
+        private void PedalsSourceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SuppressPedalsEvents || !PedalsLoaded || PedalsSourceCombo.SelectedIndex < 0) return;
+            int source = Math.Clamp(PedalsSourceCombo.SelectedIndex, 0, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetPedalsSource(source));
+        }
+
+        private void ThrottleAntiDeadzoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ThrottleAntiDeadzoneLabel == null) return;
+            double percent = Math.Round(e.NewValue);
+            ThrottleAntiDeadzoneLabel.Text = $"{percent:0}%";
+            if (SuppressPedalsEvents || !PedalsLoaded) return;
+
+            double value = Math.Round(percent / 100.0, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetThrottleAntiDeadzone(value));
+        }
+
+        private void BrakeAntiDeadzoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (BrakeAntiDeadzoneLabel == null) return;
+            double percent = Math.Round(e.NewValue);
+            BrakeAntiDeadzoneLabel.Text = $"{percent:0}%";
+            if (SuppressPedalsEvents || !PedalsLoaded) return;
+
+            double value = Math.Round(percent / 100.0, 2);
+            _ = Task.Run(() => ServiceCommunicator.TrySetBrakeAntiDeadzone(value));
+        }
 
         private void PedalsDeadZoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -431,6 +516,10 @@ namespace WheelCompatibilityConfigurator
             double wheelAdjusted = active ? snapshot!.WheelAdjusted : 0;
             double throttle = active ? snapshot!.Throttle : 0;
             double brake = active ? snapshot!.Brake : 0;
+            double triggerThrottle = active ? snapshot!.TriggerThrottle : 0;
+            double triggerBrake = active ? snapshot!.TriggerBrake : 0;
+            double pedalThrottle = active ? snapshot!.PedalThrottle : 0;
+            double pedalBrake = active ? snapshot!.PedalBrake : 0;
             double clutch = active ? snapshot!.Clutch : 0;
             double handbrake = active ? snapshot!.Handbrake : 0;
             GamepadButtons buttons = active ? (GamepadButtons)snapshot!.OutputButtons : GamepadButtons.None;
@@ -443,7 +532,7 @@ namespace WheelCompatibilityConfigurator
             {
                 RawAxesText.Text = string.Format(CultureInfo.InvariantCulture,
                     "RacingWheel  wheel={0:+0.000;-0.000; 0.000}  thr={1:0.00}  brk={2:0.00}  raw buttons=0x{3:X}",
-                    snapshot.Wheel, snapshot.Throttle, snapshot.Brake, snapshot.Buttons);
+                    snapshot.Wheel, snapshot.TriggerThrottle, snapshot.TriggerBrake, snapshot.Buttons);
             }
             else
             {
@@ -464,11 +553,26 @@ namespace WheelCompatibilityConfigurator
             WheelAdjustedLabel.Text = wheelAdjusted.ToString("+0.00;-0.00; 0.00", CultureInfo.InvariantCulture)
                 + "  (" + outputDeg.ToString("+0;-0;0", CultureInfo.InvariantCulture) + "°)";
 
+            // Final values sent to the game (after source selection and anti-deadzone).
             ThrottleBar.Value = Math.Clamp(throttle, 0, 1);
             ThrottleValueLabel.Text = ((int)Math.Round(throttle * 100)).ToString() + "%";
-
             BrakeBar.Value = Math.Clamp(brake, 0, 1);
             BrakeValueLabel.Text = ((int)Math.Round(brake * 100)).ToString() + "%";
+
+            // Raw sources: wheel/device triggers and the separate pedal set.
+            ThrottleTriggerBar.Value = Math.Clamp(triggerThrottle, 0, 1);
+            ThrottleTriggerValueLabel.Text = ((int)Math.Round(triggerThrottle * 100)).ToString() + "%";
+            ThrottlePedalBar.Value = Math.Clamp(pedalThrottle, 0, 1);
+            ThrottlePedalValueLabel.Text = ((int)Math.Round(pedalThrottle * 100)).ToString() + "%";
+            BrakeTriggerBar.Value = Math.Clamp(triggerBrake, 0, 1);
+            BrakeTriggerValueLabel.Text = ((int)Math.Round(triggerBrake * 100)).ToString() + "%";
+            BrakePedalBar.Value = Math.Clamp(pedalBrake, 0, 1);
+            BrakePedalValueLabel.Text = ((int)Math.Round(pedalBrake * 100)).ToString() + "%";
+
+            int source = active ? snapshot!.PedalSource : 2;
+            string pedalState = !active ? "no device" : (snapshot!.PedalsConnected ? "pedals connected" : "pedals not connected");
+            PedalSourceHint.Text = $"Source: {PedalSourceLabel(source)} ({pedalState}). Bold bars = final values sent to the game "
+                + "(after anti-deadzone); the thin bars show the raw triggers and pedals. Change the source on the Pedals tab.";
 
             ClutchBar.Value = Math.Clamp(clutch, 0, 1);
             ClutchValueLabel.Text = ((int)Math.Round(clutch * 100)).ToString() + "%";
@@ -494,6 +598,13 @@ namespace WheelCompatibilityConfigurator
         {
             dot.Background = pressed ? ButtonActiveBrush : ButtonIdleBrush;
         }
+
+        private static string PedalSourceLabel(int source) => source switch
+        {
+            0 => "Wheel triggers",
+            1 => "Separate pedals",
+            _ => "Both (max)",
+        };
 
         private void SensitivitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
