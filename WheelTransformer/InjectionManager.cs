@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Threading;
 using Windows.Gaming.Input;
 using Windows.UI.Input.Preview.Injection;
@@ -159,6 +160,48 @@ namespace XboxWheelCompatibility.WheelTransformer
             return Math.Clamp(sign * curved, -1.0, 1.0);
         }
 
+        // ---------------- Anti-deadzone ----------------
+        // Some games (F1 25 for example) ignore the first ~20 % of a steering axis even with their own
+        // linearity / dead zone settings at 0. Anti-deadzone lifts every non-zero value by a fixed
+        // offset so the smallest real input already lands above the game's dead zone:
+        //     |x| < 0.001  ->  0
+        //     otherwise    ->  sign(x) * (ad + (1 - ad) * |x|)
+        // It is applied LAST (after dead zone, rotation angle and sensitivity), right before sending,
+        // for the vJoy wheel, ViGEm and InputInjector alike. ad = 0 leaves the value untouched.
+
+        /// <summary>Anti-deadzone for the steering axis (-1..1).</summary>
+        public static double ApplySteeringAntiDeadZone(double wheelValue)
+            => ApplyAntiDeadZone(wheelValue, SettingsManager.SteeringAntiDeadZone);
+
+        /// <summary>Anti-deadzone for the throttle (0..1, no sign).</summary>
+        public static double ApplyThrottleAntiDeadZone(double value)
+            => ApplyPedalAntiDeadZone(value, SettingsManager.ThrottleAntiDeadZone);
+
+        /// <summary>Anti-deadzone for the brake (0..1, no sign).</summary>
+        public static double ApplyBrakeAntiDeadZone(double value)
+            => ApplyPedalAntiDeadZone(value, SettingsManager.BrakeAntiDeadZone);
+
+        private static double ApplyAntiDeadZone(double value, double antiDeadZone)
+        {
+            if (antiDeadZone <= 0.0) return value;
+
+            double magnitude = Math.Min(1.0, Math.Abs(value));
+            if (magnitude < 0.001) return 0.0;
+
+            double lifted = antiDeadZone + (1.0 - antiDeadZone) * magnitude;
+            return Math.Clamp(Math.Sign(value) * lifted, -1.0, 1.0);
+        }
+
+        private static double ApplyPedalAntiDeadZone(double value, double antiDeadZone)
+        {
+            if (antiDeadZone <= 0.0) return value;
+
+            double v = Math.Clamp(value, 0.0, 1.0);
+            if (v < 0.001) return 0.0;
+
+            return Math.Clamp(antiDeadZone + (1.0 - antiDeadZone) * v, 0.0, 1.0);
+        }
+
         private static void InjectCurrentReading()
         {
             UnifiedReading? reading;
@@ -172,24 +215,56 @@ namespace XboxWheelCompatibility.WheelTransformer
                 reading = null;
             }
 
-            if (reading != null && PedalsManager.Update())
+            if (reading != null)
             {
-                // Separate pedals are merged with the wheel triggers (whichever is pressed more).
+                // PedalsManager.Update() always runs so the Pedals tab keeps showing live values even
+                // when the pedal source is set to the wheel triggers.
+                bool pedalsActive = PedalsManager.Update();
+
+                double triggerThrottle = reading.Throttle;
+                double triggerBrake = reading.Brake;
+                double pedalThrottle = pedalsActive ? PedalsManager.Throttle : 0.0;
+                double pedalBrake = pedalsActive ? PedalsManager.Brake : 0.0;
+
+                double throttle, brake;
+                switch (SettingsManager.PedalSource)
+                {
+                    case PedalSourceMode.WheelTriggers:
+                        throttle = triggerThrottle;
+                        brake = triggerBrake;
+                        break;
+                    case PedalSourceMode.SeparatePedals:
+                        throttle = pedalThrottle;
+                        brake = pedalBrake;
+                        break;
+                    default: // BothMax - original behaviour: whichever is pressed harder wins.
+                        throttle = Math.Max(triggerThrottle, pedalThrottle);
+                        brake = Math.Max(triggerBrake, pedalBrake);
+                        break;
+                }
+
                 reading = reading with
                 {
-                    Throttle = Math.Max(reading.Throttle, PedalsManager.Throttle),
-                    Brake = Math.Max(reading.Brake, PedalsManager.Brake),
+                    Throttle = throttle,
+                    Brake = brake,
+                    TriggerThrottle = triggerThrottle,
+                    TriggerBrake = triggerBrake,
+                    PedalThrottle = pedalThrottle,
+                    PedalBrake = pedalBrake,
                 };
             }
 
             Volatile.Write(ref _lastReading, reading);
             if (reading == null) return;
 
-            LogAxesIfChanged(reading);
+            double adjustedWheel = ApplySensitivity(reading.Steering);
+            double sentWheel = ApplySteeringAntiDeadZone(adjustedWheel);
+            double sentThrottle = ApplyThrottleAntiDeadZone(reading.Throttle);
+            double sentBrake = ApplyBrakeAntiDeadZone(reading.Brake);
+
+            LogAxesIfChanged(reading, adjustedWheel, sentWheel, sentThrottle, sentBrake);
 
             if (Injector == null && !ViGEmOutput.Connected && !VJoyOutput.Connected) return;
-
-            double adjustedWheel = ApplySensitivity(reading.Steering);
 
             Interlocked.Increment(ref _injectAttempts);
 
@@ -197,12 +272,12 @@ namespace XboxWheelCompatibility.WheelTransformer
             {
                 if (VJoyOutput.Connected)
                 {
-                    VJoyOutput.Submit(adjustedWheel, reading.Throttle, reading.Brake, reading.OutputButtons);
+                    VJoyOutput.Submit(sentWheel, sentThrottle, sentBrake, reading.OutputButtons);
                 }
 
                 if (ViGEmOutput.Connected)
                 {
-                    ViGEmOutput.Submit(reading.OutputButtons, reading.Brake, reading.Throttle, adjustedWheel);
+                    ViGEmOutput.Submit(reading.OutputButtons, sentBrake, sentThrottle, sentWheel);
                 }
 
                 if (Injector != null)
@@ -213,8 +288,8 @@ namespace XboxWheelCompatibility.WheelTransformer
                         new GamepadReading(
                             (ulong)DateTime.UtcNow.Ticks,
                             reading.OutputButtons,
-                            reading.Brake, reading.Throttle,
-                            adjustedWheel, 0,
+                            sentBrake, sentThrottle,
+                            sentWheel, 0,
                             0, 0
                         )
                     )
@@ -229,16 +304,32 @@ namespace XboxWheelCompatibility.WheelTransformer
             }
         }
 
-        /// <summary>Logs raw axes at most every 2 s, only when they changed noticeably.</summary>
-        private static void LogAxesIfChanged(UnifiedReading r)
+        /// <summary>
+        /// Logs raw -> processed -> sent values at most every 2 s, only when they changed noticeably.
+        /// </summary>
+        private static void LogAxesIfChanged(UnifiedReading r, double processed, double sentSteering, double sentThrottle, double sentBrake)
         {
             long now = AxisLogTimer.ElapsedMilliseconds;
             if (now - _lastAxisLogMs < 2000) return;
 
-            string line = string.Format(CultureInfo.InvariantCulture,
-                "Axes [{0}] LX={1:+0.00;-0.00;+0.00} LY={2:+0.00;-0.00;+0.00} RX={3:+0.00;-0.00;+0.00} RY={4:+0.00;-0.00;+0.00} LT={5:0.00} RT={6:0.00} steer({7})={8:+0.00;-0.00;+0.00} thr={9:0.00} brk={10:0.00} buttons=0x{11:X4}",
-                r.Kind, r.LeftX, r.LeftY, r.RightX, r.RightY, r.LeftTrigger, r.RightTrigger,
-                r.SteeringAxisUsed, r.Steering, r.Throttle, r.Brake, r.RawButtons);
+            var sb = new StringBuilder(256);
+            sb.Append("Axes [").Append(r.Kind).Append(']');
+            sb.AppendFormat(CultureInfo.InvariantCulture, " steer raw={0:+0.00;-0.00;+0.00} proc={1:+0.00;-0.00;+0.00} sent={2:+0.00;-0.00;+0.00}",
+                r.Steering, processed, sentSteering);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " | thr trig={0:0.00} ped={1:0.00} out={2:0.00} sent={3:0.00}",
+                r.TriggerThrottle, r.PedalThrottle, r.Throttle, sentThrottle);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " | brk trig={0:0.00} ped={1:0.00} out={2:0.00} sent={3:0.00}",
+                r.TriggerBrake, r.PedalBrake, r.Brake, sentBrake);
+            sb.Append(" | src=").Append(SettingsManager.PedalSource);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " adz steer={0:0.00} thr={1:0.00} brk={2:0.00}",
+                SettingsManager.SteeringAntiDeadZone, SettingsManager.ThrottleAntiDeadZone, SettingsManager.BrakeAntiDeadZone);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " | LX={0:+0.00;-0.00;+0.00} LY={1:+0.00;-0.00;+0.00} RX={2:+0.00;-0.00;+0.00} RY={3:+0.00;-0.00;+0.00}",
+                r.LeftX, r.LeftY, r.RightX, r.RightY);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " LT={0:0.00} RT={1:0.00}", r.LeftTrigger, r.RightTrigger);
+            sb.Append(" steerAxis=").Append(r.SteeringAxisUsed);
+            sb.AppendFormat(CultureInfo.InvariantCulture, " buttons=0x{0:X4}", r.RawButtons);
+
+            string line = sb.ToString();
 
             if (line == _lastAxisLogLine) return;
             _lastAxisLogLine = line;

@@ -19,6 +19,10 @@ namespace XboxWheelCompatibility.WheelTransformer
         public const double MaxPhysicalDegrees = 540;
         public const double DefaultPhysicalDegrees = 90;
 
+        /// <summary>Upper bound of the anti-deadzone sliders (40 %).</summary>
+        public const double MaxAntiDeadZone = 0.40;
+        public const double DefaultAntiDeadZone = 0.0;
+
         private static readonly object FileLock = new();
         public static readonly string SettingsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -62,6 +66,33 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.PhysicalDegrees = Math.Clamp(value, MinPhysicalDegrees, MaxPhysicalDegrees));
         }
 
+        // ----- Anti-deadzone -----
+        // Games such as F1 25 ignore the first ~20 % of a steering axis even with linearity set to 0.
+        // Anti-deadzone lifts every non-zero value by a fixed offset: sign(x) * (ad + (1 - ad) * |x|),
+        // applied last (after dead zone, rotation angle and sensitivity), just before the value is sent.
+        // 0 keeps the old behaviour untouched.
+
+        /// <summary>Steering anti-deadzone, 0..0.40 of full lock.</summary>
+        public static double SteeringAntiDeadZone
+        {
+            get { EnsureLoaded(); return _data.SteeringAntiDeadZone; }
+            set => Update(d => d.SteeringAntiDeadZone = Math.Clamp(value, 0.0, MaxAntiDeadZone));
+        }
+
+        /// <summary>Throttle anti-deadzone, 0..0.40.</summary>
+        public static double ThrottleAntiDeadZone
+        {
+            get { EnsureLoaded(); return _data.ThrottleAntiDeadZone; }
+            set => Update(d => d.ThrottleAntiDeadZone = Math.Clamp(value, 0.0, MaxAntiDeadZone));
+        }
+
+        /// <summary>Brake anti-deadzone, 0..0.40.</summary>
+        public static double BrakeAntiDeadZone
+        {
+            get { EnsureLoaded(); return _data.BrakeAntiDeadZone; }
+            set => Update(d => d.BrakeAntiDeadZone = Math.Clamp(value, 0.0, MaxAntiDeadZone));
+        }
+
         /// <summary>Hide the real Xbox 360 receiver from games with HidHide while the service runs.</summary>
         /// <summary>When hiding: also hide the XInput (XUSB) interface, not only the HID/DirectInput one.</summary>
         public static bool HideXInputInterface
@@ -89,6 +120,28 @@ namespace XboxWheelCompatibility.WheelTransformer
             set => Update(d => d.VJoyDeviceId = Math.Clamp(value, 1, 16));
         }
 
+        // ----- vJoy pedal layout -----
+        /// <summary>Separate axes (Y = throttle, Z = brake) or one centered axis (Y).</summary>
+        public static PedalAxisMode VJoyPedalAxisMode
+        {
+            get { EnsureLoaded(); return _data.VJoyPedalAxisMode; }
+            set => Update(d => d.VJoyPedalAxisMode = Enum.IsDefined(value) ? value : PedalAxisMode.SeparateAxes);
+        }
+
+        /// <summary>Reverse the throttle axis on the vJoy wheel.</summary>
+        public static bool VJoyInvertThrottle
+        {
+            get { EnsureLoaded(); return _data.VJoyInvertThrottle; }
+            set => Update(d => d.VJoyInvertThrottle = value);
+        }
+
+        /// <summary>Reverse the brake axis on the vJoy wheel.</summary>
+        public static bool VJoyInvertBrake
+        {
+            get { EnsureLoaded(); return _data.VJoyInvertBrake; }
+            set => Update(d => d.VJoyInvertBrake = value);
+        }
+
         // ----- Separate pedals -----
         public static bool PedalsEnabled { get { EnsureLoaded(); return _data.PedalsEnabled; } set => Update(d => d.PedalsEnabled = value); }
         /// <summary>"VID:PID" of the pedal device, empty = auto (first non-Microsoft joystick).</summary>
@@ -100,6 +153,12 @@ namespace XboxWheelCompatibility.WheelTransformer
         public static double ThrottleRange { get { EnsureLoaded(); return _data.ThrottleRange; } set => Update(d => d.ThrottleRange = Math.Clamp(value, 0.1, 1.0)); }
         public static double BrakeRange { get { EnsureLoaded(); return _data.BrakeRange; } set => Update(d => d.BrakeRange = Math.Clamp(value, 0.1, 1.0)); }
         public static double PedalsCenter { get { EnsureLoaded(); return _data.PedalsCenter; } set => Update(d => d.PedalsCenter = Math.Clamp(value, 0.05, 0.95)); }
+        /// <summary>Throttle / brake come from the wheel triggers, the separate pedals or both (max).</summary>
+        public static PedalSourceMode PedalSource
+        {
+            get { EnsureLoaded(); return _data.PedalSource; }
+            set => Update(d => d.PedalSource = Enum.IsDefined(value) ? value : PedalSourceMode.BothMax);
+        }
 
         public static OutputMode Output
         {
@@ -167,9 +226,14 @@ namespace XboxWheelCompatibility.WheelTransformer
                 data.DeadZone = Math.Clamp(data.DeadZone, MinDeadZone, MaxDeadZone);
                 data.RotationDegrees = Math.Clamp(data.RotationDegrees, MinRotationDegrees, MaxRotationDegrees);
                 data.PhysicalDegrees = Math.Clamp(data.PhysicalDegrees, MinPhysicalDegrees, MaxPhysicalDegrees);
+                data.SteeringAntiDeadZone = Math.Clamp(data.SteeringAntiDeadZone, 0.0, MaxAntiDeadZone);
+                data.ThrottleAntiDeadZone = Math.Clamp(data.ThrottleAntiDeadZone, 0.0, MaxAntiDeadZone);
+                data.BrakeAntiDeadZone = Math.Clamp(data.BrakeAntiDeadZone, 0.0, MaxAntiDeadZone);
                 if (!Enum.IsDefined(data.Output)) data.Output = OutputMode.Auto;
                 if (!Enum.IsDefined(data.DeviceMode)) data.DeviceMode = DeviceSelectionMode.Auto;
                 if (!Enum.IsDefined(data.SteeringAxis)) data.SteeringAxis = SteeringAxisSource.Auto;
+                if (!Enum.IsDefined(data.PedalSource)) data.PedalSource = PedalSourceMode.BothMax;
+                if (!Enum.IsDefined(data.VJoyPedalAxisMode)) data.VJoyPedalAxisMode = PedalAxisMode.SeparateAxes;
                 _data = data;
             }
             catch
@@ -204,6 +268,9 @@ namespace XboxWheelCompatibility.WheelTransformer
             public bool HideXInputInterface { get; set; } = true;
             public bool VJoyEnabled { get; set; } = false;
             public int VJoyDeviceId { get; set; } = 1;
+            public PedalAxisMode VJoyPedalAxisMode { get; set; } = PedalAxisMode.SeparateAxes;
+            public bool VJoyInvertThrottle { get; set; } = false;
+            public bool VJoyInvertBrake { get; set; } = false;
             public bool PedalsEnabled { get; set; } = false;
             public string PedalsDevice { get; set; } = "";
             public int PedalsAxis { get; set; } = 1;
@@ -212,6 +279,10 @@ namespace XboxWheelCompatibility.WheelTransformer
             public double PedalsCenter { get; set; } = 0.5;
             public double ThrottleRange { get; set; } = 1.0;
             public double BrakeRange { get; set; } = 1.0;
+            public PedalSourceMode PedalSource { get; set; } = PedalSourceMode.BothMax;
+            public double SteeringAntiDeadZone { get; set; } = DefaultAntiDeadZone;
+            public double ThrottleAntiDeadZone { get; set; } = DefaultAntiDeadZone;
+            public double BrakeAntiDeadZone { get; set; } = DefaultAntiDeadZone;
             public SteeringAxisSource SteeringAxis { get; set; } = SteeringAxisSource.Auto;
             public bool InvertSteering { get; set; } = false;
             public bool DiagnosticLogging { get; set; } = true;

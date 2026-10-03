@@ -28,6 +28,17 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public string VJoyStatus { get; set; } = "";
         public double RotationDegrees { get; set; }
 
+        /// <summary>Non-empty when the vJoy device is missing axis X, Y or Z.</summary>
+        public string VJoyAxisWarning { get; set; } = "";
+
+        /// <summary>0 = separate axes (Y throttle, Z brake), 1 = combined centered axis (Y).</summary>
+        public int VJoyPedalAxisMode { get; set; }
+        public bool VJoyInvertThrottle { get; set; }
+        public bool VJoyInvertBrake { get; set; }
+
+        /// <summary>Steering anti-deadzone, 0..0.40.</summary>
+        public double SteeringAntiDeadZone { get; set; }
+
         /// <summary>Everything seen in the last device scan (RacingWheels, XInput slots, Gamepads).</summary>
         public string[] ScanLines { get; set; } = Array.Empty<string>();
 

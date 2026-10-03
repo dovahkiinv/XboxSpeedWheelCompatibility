@@ -21,9 +21,14 @@ Oryginalna licencja MIT i historia Git zostały zachowane.
   - **vJoy** – wirtualna kierownica DirectInput: X = skręt, Y = gaz, Z = hamulec, 14 przycisków.
 - **Skręt**: kąt obrotu 90°–1080° (jak w prawdziwej kierownicy), kalibracja fizycznego obrotu,
   martwe pole, krzywa czułości 0,01–3,00, odwrócenie, wybór osi skrętu.
+- **Anti-deadzone** (0–40%) dla skrętu, gazu i hamulca – podnosi sygnał ponad wbudowaną martwą
+  strefę gry (potrzebne w F1 25, które ignoruje ok. 20% osi).
 - **Osobne pedały** (dowolny dodatkowy joystick DirectInput, np. pedały ze starej kierownicy):
   pedały na jednej osi, martwe pole, „100% przy X% wciśnięcia” dla każdego pedału, kalibracja
-  środka, zamiana gazu z hamulcem.
+  środka, zamiana gazu z hamulcem oraz wybór źródła gazu/hamulca (spusty kierownicy / osobne
+  pedały / oba).
+- **Układ osi pedałów w vJoy**: osobne osie (Y = gaz, Z = hamulec) albo jedna oś wycentrowana
+  (Y: góra = gaz, dół = hamulec), z odwróceniem każdego pedału osobno.
 - **Ukrywanie prawdziwej kierownicy przed grami** przez HidHide – gra widzi tylko wirtualne urządzenie.
 - **Diagnostyka**: tester kierownicy, pedałów i przycisków, surowe osie, lista urządzeń, `Output.log`.
 - Ustawienia zapisują się w `%ProgramData%\XboxWheelCompatibility\settings.json`.
@@ -99,6 +104,7 @@ sc.exe start WheelCompatibilityService
 | Steering dead zone (martwe pole) | 0,00–0,50. Speed Wheel w spoczynku waha się ok. ±0,07 → zalecane **0,08** |
 | Rotation angle (kąt obrotu) | 90°–1080° od oporu do oporu. Pełny skręt w grze przy połowie w każdą stronę (180° → pełny skręt przy 90°) |
 | Calibration (kalibracja) | o ile stopni fizycznie obracasz kierownicę, gdy wejście pokazuje ±1,00 (Speed Wheel ≈ 90°) |
+| Steering anti-deadzone | 0–40%, krok 1%, domyślnie 0 (wyłączone). Podnosi każdą niezerową wartość skrętu ponad martwą strefę gry – zob. [F1 25](#f1-25-i-martwa-strefa-skrętu) |
 | Device mode | Auto (najpierw RacingWheel, potem Speed Wheel) / tylko RacingWheel / tylko Speed Wheel |
 | Steering axis (oś skrętu) | Auto (LeftThumbstickX, wykrywa inne) / LX / RX / LY / RY |
 | Invert steering | zamienia lewo z prawem |
@@ -106,7 +112,17 @@ sc.exe start WheelCompatibilityService
 | Hide real Speed Wheel | ukrywa urządzenia prawdziwego odbiornika przed grami (HidHide) |
 | Also hide XInput interface | odznacz, jeśli gra zawiesza się przy starcie przy włączonym ukrywaniu |
 
-Kolejność przetwarzania: martwe pole → kąt obrotu → czułość.
+Kolejność przetwarzania: martwe pole → kąt obrotu → czułość → **anti-deadzone** (na samym końcu,
+tuż przed wysłaniem wartości do vJoy / ViGEm / InputInjector).
+
+Wzór anti-deadzone: `sign(x) · (ad + (1 − ad) · |x|)` dla `|x| ≥ 0,001`, a `0` poniżej tej wartości
+(dla pedałów `x` jest z zakresu 0..1 i nie ma znaku). Przy `ad = 0` wartość pozostaje bez zmian,
+więc stare pliki `settings.json` działają dokładnie tak jak wcześniej.
+
+**Live input tester** pokazuje obie wartości: *Wheel input* (surowa) i *Game output* (po martwym
+polu, kącie obrotu, czułości i anti-deadzone – czyli dokładnie to, co dostaje gra). Pod paskami
+gazu i hamulca wypisuje osobno gaz i hamulec: ze spustów kierownicy, z pedałów oraz wartość
+wysyłaną na końcu.
 
 Mapowanie Speed Wheela na wirtualny kontroler:
 
@@ -127,8 +143,16 @@ Dla dodatkowych pedałów (np. widocznych w joy.cpl jako „Steering Wheel”):
 3. Zaznacz **Use separate pedals**; jeśli gaz i hamulec są zamienione – **Swap throttle / brake**.
 4. Ustaw **Pedal dead zone** oraz **Throttle / Brake: 100% at pedal travel**
    (np. 50% = pełny gaz/hamulec przy wciśnięciu do połowy).
+5. Wybierz **Throttle/brake source** (źródło gazu i hamulca):
 
-Pedały są łączone z triggerami Speed Wheela (wygrywa mocniej wciśnięty).
+| Opcja | Znaczenie |
+| --- | --- |
+| Wheel triggers | tylko spusty Speed Wheela (RT = gaz, LT = hamulec) |
+| Separate pedals | tylko zewnętrzne pedały |
+| Both (max) | oba źródła, wygrywa mocniej wciśnięte – **domyślne, stare zachowanie** |
+
+6. Jeśli gra ignoruje początek osi pedału, podnieś **Throttle anti-deadzone** /
+   **Brake anti-deadzone** (0–40%, domyślnie 0).
 
 > **Ograniczenie pedałów na jednej osi:** wiele starszych pedałów wysyła oba pedały na **jednej osi**
 > (gaz w górę, hamulec w dół). Wciśnięcie obu naraz znosi się już w samym urządzeniu – programowo
@@ -142,11 +166,28 @@ Pedały są łączone z triggerami Speed Wheela (wygrywa mocniej wciśnięty).
 3. Zakładka Main: *Virtual output* = **None (vJoy wheel only)** i zaznacz *Hide real Speed Wheel*.
 4. W grze przypisz: skręt = X, gaz = Y, hamulec = Z, biegi = przyciski 5/6.
 
+**Pedal axes** – układ osi pedałów w vJoy jest do wyboru:
+
+| Układ | Osie vJoy | Przypisanie w grze |
+| --- | --- | --- |
+| Separate axes *(domyślnie)* | Y = gaz, Z = hamulec, spoczynek = minimum osi | dwie osie |
+| Combined axis | Y wycentrowana: środek = nic, **góra** = gaz, **dół** = hamulec; Z zostaje na 0 | jedna oś |
+
+*Combined axis* przydaje się w grach, które przyjmują tylko jedną oś pedałów (albo traktują oś
+pedału jak gałkę). **Invert throttle axis** / **Invert brake axis** odwracają pedał: w *Separate
+axes* oś staje się `1 − wartość`, w *Combined axis* pedał przechodzi na przeciwny koniec osi Y.
+
+**Ostrzeżenie o brakujących osiach** – przy połączeniu program wywołuje `GetVJDAxisExist` dla osi
+X, Y i Z. Jeśli którejś nie ma na urządzeniu vJoy, zakładka Wheel emulation pokazuje czerwone
+ostrzeżenie (*„vJoy device 1 is missing axis(es): Y, Z. Enable axes X, Y, Z in 'Configure vJoy'…”*),
+ten sam komunikat trafia do `Output.log`, a brakujące osie po prostu nie są wysyłane, dopóki nie
+poprawisz konfiguracji vJoy i nie połączysz się ponownie.
+
 Przyciski vJoy: 1 A, 2 B, 3 X, 4 Y, 5 LB, 6 RB, 7 Back, 8 Start, 9 LS, 10 RS, 11–14 D-pad.
 
 > Gry z listą obsługiwanych kierownic (np. oficjalne gry F1) rozpoznają kierownice po sprzętowym
 > VID/PID i mogą nie przyjąć vJoy jako kierownicy. W takich grach użyj wyjścia ViGEm – kąt obrotu,
-> martwe pole i czułość nadal działają.
+> martwe pole, czułość i anti-deadzone nadal działają.
 
 ## Zalecane ustawienia (Speed Wheel)
 
@@ -156,15 +197,39 @@ Przyciski vJoy: 1 A, 2 B, 3 X, 4 Y, 5 LB, 6 RB, 7 Back, 8 Start, 9 LS, 10 RS, 11
 | Program | Martwe pole | 0,08 |
 | Program | Kąt obrotu | 180° |
 | Program | Kalibracja | 90° |
+| Program | Steering anti-deadzone | 0% (15–20% dla F1 25) |
 | Gra | Martwa strefa / nasycenie / liniowość skrętu | 0 |
+
+## F1 25 i martwa strefa skrętu
+
+F1 25 ma własną, wbudowaną martwą strefę skrętu. Przy kierownicy vJoy samochód nie reaguje na małe
+ruchy kierownicą – mniej więcej do ±20% osi – a ustawienie w grze **Liniowość skrętu = 0** tego
+**nie** usuwa.
+
+Napraw to w tym programie, a nie w grze:
+
+1. Zakładka Main → **Steering anti-deadzone = 15–20%** (zacznij od 15% i podnoś, aż auto zacznie
+   reagować od razu na najmniejszy ruch).
+2. W grze ustaw **Liniowość skrętu = 0** oraz **Zakres ruchu kierownicy = 100%**.
+3. Martwą strefę skrętu w grze zostaw na 0.
+4. Sprawdź w testerze na zakładce Main: przy anti-deadzone 20% skręt, który w *Wheel input* pokazuje
+   `+0,10`, musi w *Game output* pokazać ok. `+0,28`. Te same liczby trafiają co 2 s do `Output.log`
+   jako `steer raw=… proc=… sent=…`.
+
+Analogiczne suwaki dla pedałów (**Throttle / Brake anti-deadzone**) są na zakładce Pedals – przydają
+się, gdy gra ignoruje też początek osi gazu lub hamulca.
+
+> Anti-deadzone działa **na samym końcu** (po martwym polu, kącie obrotu i czułości) i tylko dla
+> wartości niezerowych, więc kierownicą nadal dokładnie wraca do centrum. Dotyczy wyjścia vJoy,
+> ViGEm oraz InputInjector.
 
 ## Uwagi do gier
 
 | Gra | Zalecane wyjście | Uwagi |
 | --- | --- | --- |
-| F1 25 | ViGEm (lub InputInjector) | Wybierz profil pada Xbox, martwą strefę w grze ustaw na 0 |
+| F1 25 | ViGEm (lub InputInjector) | Wybierz profil pada Xbox, martwą strefę w grze ustaw na 0 i włącz **Steering anti-deadzone 15–20%** – patrz wyżej |
 | F1 2018 / starsze F1 | ViGEm | vJoy nie jest rozpoznawany jako kierownica |
-| CarX Drift Racing Online | ViGEm lub vJoy | Jeśli gra zawiesza się przy wczytywaniu z włączonym HidHide, odznacz *Also hide XInput interface* albo wyłącz ukrywanie |
+| CarX Drift Racing Online | ViGEM lub vJoy | Działa z ukrywaniem HidHide i z vJoy. Zawieszanie się gry przy wczytywaniu powodował **mod Kino (`kino.dll`)**, a nie HidHide ani vJoy – jeśli gra się wiesza, usuń/wyłącz ten mod |
 
 Jeśli gra widzi jednocześnie prawdziwy i wirtualny kontroler, sterowanie może się dublować – włącz
 ukrywanie przez HidHide albo wybierz wirtualny kontroler w ustawieniach gry.
@@ -173,7 +238,9 @@ ukrywanie przez HidHide albo wybierz wirtualny kontroler w ustawieniach gry.
 
 - Serwis zapisuje `Output.log` obok `WheelCompatibilityService.exe` (nowy przy każdym starcie):
   wykryte urządzenia, gniazda XInput, wybrane urządzenie, wyjścia, operacje HidHide/vJoy/pedałów,
-  wartości osi co 2 s.
+  każdą zmianę ustawień oraz wartości osi co 2 s – surowe → po przetworzeniu → wysłane, razem
+  z gazem/hamulcem ze spustów, z pedałów i po połączeniu oraz z aktualnym anti-deadzone:
+  `Axes [XInputSpeedWheel] steer raw=+0.42 proc=+0.35 sent=+0.48 | thr trig=0.00 ped=0.60 out=0.60 sent=0.60 | brk … | src=BothMax adz steer=0.20 thr=0.00 brk=0.00 | LX=… buttons=0x0000`.
 - Kopia zbiorcza: `%ProgramData%\XboxWheelCompatibility\diagnostics.log`.
 - Speed Wheel zgłasza nietypowy podtyp XInput (`0x52`) – jest wykrywany jako bezprzewodowe
   urządzenie XInput, które nie jest zwykłym padem.
@@ -194,9 +261,14 @@ ukrywanie przez HidHide albo wybierz wirtualny kontroler w ustawieniach gry.
 ## Stan testów
 
 Przetestowane przez użytkownika z Xbox 360 Wireless Speed Wheel na Windows 11: wykrywanie Speed
-Wheela, osie, wyjście ViGEm, ukrywanie przez HidHide i wyjście vJoy działają. F1 2018 nie przyjmuje
-vJoy jako kierownicy. Autor zmian nie testował kodu na fizycznym sprzęcie – problemy zgłaszaj
-razem z plikiem `Output.log`.
+Wheela, osie, wyjście ViGEm, ukrywanie przez HidHide i wyjście vJoy działają (X = skręt, Y = gaz,
+Z = hamulec). F1 2018 nie przyjmuje vJoy jako kierownicy.
+
+**Jeszcze niesprawdzone na sprzęcie:** anti-deadzone (skręt / gaz / hamulec), wybór źródła
+gazu i hamulca, łączona oś pedałów w vJoy, odwrócenia pedałów oraz ostrzeżenie o brakujących osiach.
+Wszystkie te opcje mają domyślne wartości odpowiadające dotychczasowemu zachowaniu (anti-deadzone 0%,
+źródło *Both (max)*, *Separate axes*, brak odwróceń), więc istniejąca konfiguracja działa bez zmian.
+Problemy zgłaszaj razem z plikiem `Output.log`.
 
 ## Struktura projektu
 

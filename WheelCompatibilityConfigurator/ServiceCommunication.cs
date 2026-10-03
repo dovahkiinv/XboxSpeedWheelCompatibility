@@ -192,6 +192,14 @@ namespace WheelCompatibilityConfigurator
         }
 
         public bool TrySetVJoy(bool enabled, int deviceId) => TryInvoke(p => p.SetVJoy(enabled, deviceId));
+
+        public bool TrySetVJoyPedalAxes(int mode, bool invertThrottle, bool invertBrake)
+            => TryInvoke(p => p.SetVJoyPedalAxes(mode, invertThrottle, invertBrake));
+
+        public bool TrySetSteeringAntiDeadZone(double value) => TryInvoke(p => p.SetSteeringAntiDeadZone(value));
+        public bool TrySetThrottleAntiDeadZone(double value) => TryInvoke(p => p.SetThrottleAntiDeadZone(value));
+        public bool TrySetBrakeAntiDeadZone(double value) => TryInvoke(p => p.SetBrakeAntiDeadZone(value));
+        public bool TrySetPedalSource(int source) => TryInvoke(p => p.SetPedalSource(source));
         public PedalsStatus? TryGetPedalsStatus()
         {
             var client = GetClient();
