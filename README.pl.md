@@ -211,8 +211,8 @@ Nie trzeba zmieniać kierownicy – kompensuje to program:
 
 | Gdzie | Ustawienie | Wartość |
 | --- | --- | --- |
-| Program | Steering anti-deadzone | **15–20%** (zacznij od 15, zwiększaj, aż auto reaguje natychmiast) |
-| Program | Steering dead zone | 0,06–0,08 (tyle, by ukryć dryf Speed Wheela w spoczynku) |
+| Program | Steering anti-deadzone | **20–25%** – musi być *większy* niż martwa strefa gry, bo program nigdy nie wysyła mniej niż ta wartość, gdy skręcasz. 5% nic nie daje w F1 25 (gra to ignoruje) |
+| Program | Steering dead zone | 0,06–0,08 (tyle, by ukryć dryf Speed Wheela w spoczynku; nie może być 0) |
 | Program | Kąt obrotu | 180° (lub tyle, ile używasz w innych grach) |
 | Program | Kalibracja | 90° |
 | Gra, ekran *Calibration* | **Linearity** | **0** |
@@ -222,8 +222,11 @@ Nie trzeba zmieniać kierownicy – kompensuje to program:
 Jak sprawdzić, że działa:
 
 1. Otwórz w F1 25 ekran **kalibracji** (rysuje wychylenie skrętu jako pasek).
-2. Obróć Speed Wheel o ok. 10–15° – pasek musi od razu odejść od środka.
-3. Nadal nic? Zwiększ anti-deadzone o 5% i powtórz. Za nerwowo przy środku? Zmniejsz.
+2. Obróć Speed Wheel o ok. 8–10° (tuż powyżej dryfu w spoczynku) – pasek musi od razu odejść od środka.
+   Nadal 0? Anti-deadzone jest poniżej martwej strefy gry: zwiększ (20% → 25% → 30%) i powtórz.
+   Program pokazuje tę „podłogę” pod suwakiem („the game receives at least … %”).
+3. Za nerwowo przy środku? Zejdź do 20%, zwiększ *Rotation angle* albo zmniejsz *Szybkość sterowania*
+   w grze.
 4. Te same objawy na pedałach (gaz/hamulec reaguje dopiero po długim wciśnięciu) leczy
    **Throttle/Brake anti-deadzone** na zakładce Pedals.
 

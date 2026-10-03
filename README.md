@@ -207,8 +207,8 @@ the game. Instead of changing the wheel, compensate it in the app:
 
 | Where | Setting | Value |
 | --- | --- | --- |
-| App | Steering anti-deadzone | **15–20 %** (start at 15, raise until the car reacts immediately) |
-| App | Steering dead zone | 0.06–0.08 (just enough to hide the Speed Wheel drift at rest) |
+| App | Steering anti-deadzone | **20–25 %** — it must be *larger* than the game's own dead zone, because the app never sends less than this value while you steer. 5 % does nothing in F1 25 (the game ignores it) |
+| App | Steering dead zone | 0.06–0.08 (just enough to hide the Speed Wheel drift at rest; it may not be 0) |
 | App | Rotation angle | 180° (or what you use in other games) |
 | App | Calibration | 90° |
 | Game, *Calibration* screen | **Linearity** | **0** |
@@ -218,8 +218,12 @@ the game. Instead of changing the wheel, compensate it in the app:
 How to verify it works:
 
 1. Open the F1 25 **calibration** screen (it draws the steering input as a bar).
-2. Turn the Speed Wheel about 10–15° – the bar must move away from the centre immediately.
-3. Still nothing? Raise the anti-deadzone by 5 % and repeat. Too twitchy around the centre? Lower it.
+2. Turn the Speed Wheel about 8–10° (just past the drift at rest) – the bar must move away from the
+   centre immediately. Still at 0? The anti-deadzone is below the game's dead zone: raise it
+   (20 % → 25 % → 30 %) and repeat. The configurator prints the floor value under the slider
+   ("the game receives at least … %").
+3. Too twitchy around the centre? Lower it to 20 %, increase *Rotation angle* or lower the game's
+   *Steering speed*.
 4. The same symptoms on the pedals (throttle/brake only reacting after a long press) are fixed with
    **Throttle/Brake anti-deadzone** on the Pedals tab.
 

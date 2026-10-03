@@ -32,7 +32,7 @@ namespace WheelCompatibilityConfigurator
             ButtonActiveBrush.Freeze();
 
             Closed += (_, _) => StatusLoopCancellation.Cancel();
-            Loaded += (_, _) => UpdateAntiDeadzoneWarning();
+            Loaded += (_, _) => { UpdateAntiDeadzoneWarning(); UpdateAntiDeadzoneFloor(); };
 
             _ = InitializeSensitivityAsync();
             _ = StatusLoop(StatusLoopCancellation.Token);
@@ -74,6 +74,8 @@ namespace WheelCompatibilityConfigurator
                         VJoyInvertBrakeCheck.IsChecked = status.VJoyInvertBrake;
                         SteeringAntiDeadzoneSlider.Value = Math.Round(Math.Clamp(status.SteeringAntiDeadzone, 0.0, 0.40) * 100.0);
                         SteeringAntiDeadzoneLabel.Content = $"{SteeringAntiDeadzoneSlider.Value:0}%";
+                        UpdateAntiDeadzoneFloor();
+                        UpdateAntiDeadzoneWarning();
                         SuppressDeviceEvents = false;
                         DeviceSettingsLoaded = true;
                     }
@@ -142,10 +144,28 @@ namespace WheelCompatibilityConfigurator
             double percent = Math.Round(e.NewValue);
             SteeringAntiDeadzoneLabel.Content = $"{percent:0}%";
             UpdateAntiDeadzoneWarning();
+            UpdateAntiDeadzoneFloor();
             if (SuppressDeviceEvents || !DeviceSettingsLoaded) return;
 
             double value = Math.Round(percent / 100.0, 2);
             _ = Task.Run(() => ServiceCommunicator.TrySetSteeringAntiDeadzone(value));
+        }
+
+        /// <summary>
+        /// Shows the smallest steering value the game can receive while the anti-deadzone is on:
+        /// as soon as the input leaves the dead zone the game gets at least the anti-deadzone value.
+        /// It has to be larger than the game's own dead zone or the game still shows nothing.
+        /// </summary>
+        private void UpdateAntiDeadzoneFloor()
+        {
+            if (AntiDeadzoneFloorText == null) return;
+
+            double percent = Math.Round(SteeringAntiDeadzoneSlider.Value);
+            AntiDeadzoneFloorText.Text = percent <= 0
+                ? "Game output: 0% at rest, exactly what the wheel does up to 100%."
+                : $"Game output: as soon as the wheel leaves the dead zone the game receives at least {percent:0}% "
+                  + $"of steering (0 to {percent:0}% is never sent). This floor must be larger than the game's own "
+                  + "dead zone - F1 25 ignores about 20%, so use 20-25% there.";
         }
 
         /// <summary>
@@ -643,6 +663,7 @@ namespace WheelCompatibilityConfigurator
             double value = Math.Round(e.NewValue, 2);
             DeadZoneValueLabel.Content = value.ToString("0.00", CultureInfo.InvariantCulture);
             UpdateAntiDeadzoneWarning();
+            UpdateAntiDeadzoneFloor();
             if (SuppressSliderEvent || !IsLoaded) return;
 
             _ = Task.Run(() => ServiceCommunicator.TrySetDeadZone(value));
