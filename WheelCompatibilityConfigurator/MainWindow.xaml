@@ -165,6 +165,27 @@
                 Margin="0,2,0,2" />
         <TextBlock Text="Turn the wheel until 'Wheel input' shows ±1.00 and set here how many degrees that was. Speed Wheel ≈ 90°."
                    FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+        <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Steering anti-deadzone" Padding="0,2"
+                   ToolTip="Lifts every non-zero steering value above the game's own dead zone: sign(x) * (ad + (1 - ad) * |x|). Applied last, before the value is sent to vJoy / ViGEm / InputInjector." />
+            <Label Grid.Column="1" x:Name="AntiDeadZoneValueLabel" Content="0%" MinWidth="40" HorizontalContentAlignment="Right" Padding="0,2" />
+        </Grid>
+        <Slider x:Name="AntiDeadZoneSlider"
+                Minimum="0"
+                Maximum="0.4"
+                Value="0"
+                TickFrequency="0.01"
+                IsSnapToTickEnabled="True"
+                SmallChange="0.01"
+                LargeChange="0.05"
+                ValueChanged="AntiDeadZoneSlider_ValueChanged"
+                Margin="0,2,0,2" />
+        <TextBlock Text="For games that ignore the first part of the axis. F1 25 ignores about 20 % even with linearity 0 → set 15–20 %. 0 % = off (old behaviour)."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
         </StackPanel>
 
         <Separator Grid.Row="5" Margin="0,10,0,6" />
@@ -198,7 +219,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                    <TextBlock Text="Game output" HorizontalAlignment="Center" FontSize="11" Foreground="#444" ToolTip="What the game sees after the sensitivity curve is applied." />
+                    <TextBlock Text="Game output" HorizontalAlignment="Center" FontSize="11" Foreground="#444" ToolTip="What the game sees: after the dead zone, rotation angle, sensitivity and the steering anti-deadzone." />
                     <Grid Width="100" Height="100" RenderTransformOrigin="0.5,0.5" Margin="0,4,0,2">
                         <Grid.RenderTransform>
                             <RotateTransform x:Name="WheelOutputRotation" Angle="0" />
@@ -263,8 +284,14 @@
                 <TextBlock Grid.Column="2" x:Name="HandbrakeValueLabel" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" />
             </Grid>
 
+            <!-- Throttle / brake: wheel triggers vs separate pedals vs what is finally sent -->
+            <TextBlock x:Name="PedalSourcesText" FontFamily="Consolas" FontSize="11" Margin="0,8,0,0"
+                       TextWrapping="Wrap" Text="-"
+                       ToolTip="Throttle/brake from the wheel triggers, from the separate pedal set, and the value finally sent to the game (after the anti-deadzone)." />
+
             <!-- Buttons grid -->
             <TextBlock Text="Buttons (sent to virtual controller)" Margin="0,10,0,2" Foreground="#444" FontSize="11" />
+
             <UniformGrid Columns="6" Rows="2" HorizontalAlignment="Center">
                 <StackPanel HorizontalAlignment="Center">
                     <Border x:Name="DotDPadUp" Style="{StaticResource ButtonDot}" />
@@ -393,7 +420,7 @@
             <StackPanel Margin="12">
                 <TextBlock Text="Separate pedals" FontSize="14" FontWeight="SemiBold" />
                 <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
-                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. Pedals are merged with the Speed Wheel triggers (whichever is pressed more wins)." />
+                           Text="Use a separate pedal set (e.g. 'Steering Wheel' in joy.cpl) for throttle and brake. Combined pedals use ONE axis: at rest it is in the middle, one pedal moves it up, the other down. 'Throttle/brake source' decides whether the game gets the wheel triggers, these pedals, or both (the stronger one wins)." />
 
                 <CheckBox x:Name="PedalsEnabledCheck" Margin="0,12,0,0" FontWeight="SemiBold" Content="Use separate pedals"
                           Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
@@ -404,6 +431,7 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -421,6 +449,13 @@
                     </ComboBox>
                     <CheckBox Grid.Row="2" Grid.Column="1" x:Name="PedalsSwapCheck" Margin="0,4" Content="Swap throttle / brake"
                               Checked="PedalsSettings_Changed" Unchecked="PedalsSettings_Changed" />
+                    <TextBlock Grid.Row="3" Text="Throttle/brake source" VerticalAlignment="Center"
+                               ToolTip="Where the throttle and brake output is taken from." />
+                    <ComboBox Grid.Row="3" Grid.Column="1" x:Name="PedalSourceCombo" Margin="0,2" SelectionChanged="PedalSourceCombo_SelectionChanged">
+                        <ComboBoxItem Content="Wheel triggers" />
+                        <ComboBoxItem Content="Separate pedals" />
+                        <ComboBoxItem Content="Both (max)" />
+                    </ComboBox>
                 </Grid>
 
                 <Grid Margin="0,8,0,0">
@@ -462,6 +497,30 @@
                     <TextBlock Text="(both pedals)" VerticalAlignment="Center" FontSize="11" Foreground="Gray" />
                 </StackPanel>
                 <TextBlock Text="50% = full throttle / full brake already when the pedal is pressed halfway." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Throttle anti-deadzone"
+                               ToolTip="Lifts every non-zero throttle value above the game's own dead zone: ad + (1 - ad) * x. Applied last, before the value is sent." />
+                    <TextBlock Grid.Column="1" x:Name="ThrottleAntiDeadZoneLabel" Text="0%" />
+                </Grid>
+                <Slider x:Name="ThrottleAntiDeadZoneSlider" Minimum="0" Maximum="0.4" Value="0" SmallChange="0.01" LargeChange="0.05"
+                        TickFrequency="0.01" IsSnapToTickEnabled="True" ValueChanged="ThrottleAntiDeadZoneSlider_ValueChanged" Margin="0,2" />
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brake anti-deadzone"
+                               ToolTip="Lifts every non-zero brake value above the game's own dead zone: ad + (1 - ad) * x. Applied last, before the value is sent." />
+                    <TextBlock Grid.Column="1" x:Name="BrakeAntiDeadZoneLabel" Text="0%" />
+                </Grid>
+                <Slider x:Name="BrakeAntiDeadZoneSlider" Minimum="0" Maximum="0.4" Value="0" SmallChange="0.01" LargeChange="0.05"
+                        TickFrequency="0.01" IsSnapToTickEnabled="True" ValueChanged="BrakeAntiDeadZoneSlider_ValueChanged" Margin="0,2" />
+                <TextBlock Text="For games that ignore the first part of the pedal axis. 0 % = off (old behaviour)." FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
 
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                     <Button x:Name="PedalsCalibrateButton" Content="Calibrate center" Padding="8,3" Click="PedalsCalibrateButton_Click" />
@@ -517,6 +576,27 @@
                 <Border Margin="0,10,0,0" Padding="6,4" CornerRadius="3" Background="#F0F0F0" BorderBrush="#B0B0B0" BorderThickness="1">
                     <TextBlock x:Name="VJoyStatusText" Text="Off" TextWrapping="Wrap" FontSize="11" />
                 </Border>
+
+                <Border x:Name="VJoyAxisWarningBorder" Margin="0,6,0,0" Padding="6,4" CornerRadius="3"
+                        Background="#FDE0E0" BorderBrush="#D62828" BorderThickness="1" Visibility="Collapsed">
+                    <TextBlock x:Name="VJoyAxisWarningText" Text="" TextWrapping="Wrap" FontSize="11" Foreground="#8B1A1A" />
+                </Border>
+
+                <Separator Margin="0,12,0,8" />
+                <TextBlock Text="Pedal axes" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Layout" VerticalAlignment="Center" Width="90" />
+                    <ComboBox x:Name="VJoyPedalAxisCombo" Width="240" SelectionChanged="VJoyPedalAxisCombo_SelectionChanged">
+                        <ComboBoxItem Content="Separate axes (Y = throttle, Z = brake)" />
+                        <ComboBoxItem Content="Combined axis (Y: up = throttle, down = brake)" />
+                    </ComboBox>
+                </StackPanel>
+                <CheckBox x:Name="VJoyInvertThrottleCheck" Margin="0,6,0,0" Content="Invert throttle axis"
+                          Checked="VJoyPedalAxis_Changed" Unchecked="VJoyPedalAxis_Changed" />
+                <CheckBox x:Name="VJoyInvertBrakeCheck" Margin="0,2,0,0" Content="Invert brake axis"
+                          Checked="VJoyPedalAxis_Changed" Unchecked="VJoyPedalAxis_Changed" />
+                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Margin="0,4,0,0"
+                           Text="Separate axes: Y = throttle, Z = brake, rest = axis minimum (bind both axes in the game). Combined axis: Y centered - middle = nothing, up = throttle, down = brake, Z stays at 0 (useful for games that only accept one pedal axis). Inverting a pedal moves it to the opposite end of its axis." />
 
                 <Separator Margin="0,12,0,8" />
                 <TextBlock Text="Rotation angle of the virtual wheel" FontWeight="SemiBold" />

@@ -7,9 +7,26 @@ namespace XboxWheelCompatibility.CommunicationInterface
     {
         public bool HasWheel { get; set; }
         public double Wheel { get; set; }
+        /// <summary>Steering after dead zone, rotation angle and sensitivity.</summary>
         public double WheelAdjusted { get; set; }
+        /// <summary>Steering actually sent to the game (after the anti-deadzone).</summary>
+        public double WheelGameOutput { get; set; }
+        /// <summary>Throttle / brake after the pedal source was merged.</summary>
         public double Throttle { get; set; }
         public double Brake { get; set; }
+        /// <summary>Throttle / brake actually sent to the game (after the anti-deadzone).</summary>
+        public double ThrottleGameOutput { get; set; }
+        public double BrakeGameOutput { get; set; }
+
+        /// <summary>Throttle / brake reported by the device itself (wheel triggers).</summary>
+        public double TriggerThrottle { get; set; }
+        public double TriggerBrake { get; set; }
+        /// <summary>Throttle / brake from the separate pedal set (0 when the pedals are off).</summary>
+        public double PedalThrottle { get; set; }
+        public double PedalBrake { get; set; }
+        /// <summary>0 = wheel triggers, 1 = separate pedals, 2 = both (max).</summary>
+        public int PedalSource { get; set; }
+
         public double Clutch { get; set; }
         public double Handbrake { get; set; }
 

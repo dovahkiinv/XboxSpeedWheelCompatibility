@@ -20,6 +20,12 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public void SetRotationDegrees(double Degrees);
         public double GetPhysicalDegrees();
         public void SetPhysicalDegrees(double Degrees);
+
+        /// <summary>Anti-deadzone (0..0.40) applied last, just before a value is sent to the game.</summary>
+        public void SetSteeringAntiDeadZone(double Value);
+        public void SetThrottleAntiDeadZone(double Value);
+        public void SetBrakeAntiDeadZone(double Value);
+
         public WheelReadingSnapshot GetReadingSnapshot();
         public InjectionDiagnostics GetInjectionDiagnostics();
 
@@ -35,10 +41,14 @@ namespace XboxWheelCompatibility.CommunicationInterface
         public string SetHideXInputInterface(bool Hide);
         /// <summary>Enable/disable the vJoy virtual wheel on the given vJoy device (1-16).</summary>
         public void SetVJoy(bool Enabled, int DeviceId);
+        /// <summary>vJoy pedal layout: Mode 0 = separate axes, 1 = combined centered axis.</summary>
+        public void SetVJoyPedalAxes(int Mode, bool InvertThrottle, bool InvertBrake);
 
         // Separate pedals
         public PedalsStatus GetPedalsStatus();
         public void SetPedals(bool Enabled, string DeviceKey, int Axis, bool Swap, double DeadZone);
+        /// <summary>0 = wheel triggers, 1 = separate pedals, 2 = both (max).</summary>
+        public void SetPedalSource(int Source);
         public string CalibratePedalsCenter();
         public void SetPedalsRange(double ThrottleRange, double BrakeRange);
     }

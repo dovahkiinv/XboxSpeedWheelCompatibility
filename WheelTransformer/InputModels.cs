@@ -48,6 +48,26 @@ namespace XboxWheelCompatibility.WheelTransformer
         RightY = 4,
     }
 
+    /// <summary>Where the throttle / brake output is taken from.</summary>
+    public enum PedalSourceMode
+    {
+        /// <summary>Only the wheel triggers (Speed Wheel RT / LT, or a RacingWheel's own pedals).</summary>
+        WheelTriggers = 0,
+        /// <summary>Only the separate pedal set read by PedalsManager.</summary>
+        SeparatePedals = 1,
+        /// <summary>Both, whichever is pressed harder wins (original behaviour).</summary>
+        BothMax = 2,
+    }
+
+    /// <summary>How the pedals are laid out on the vJoy virtual wheel.</summary>
+    public enum PedalAxisMode
+    {
+        /// <summary>Y = throttle, Z = brake, rest position = axis minimum (original behaviour).</summary>
+        SeparateAxes = 0,
+        /// <summary>Y centered: middle = nothing, up = throttle, down = brake; Z stays at 0.</summary>
+        CombinedAxis = 1,
+    }
+
     /// <summary>One normalised reading from any supported device, plus the raw data for diagnostics.</summary>
     public sealed record UnifiedReading
     {
@@ -56,10 +76,19 @@ namespace XboxWheelCompatibility.WheelTransformer
 
         /// <summary>Raw steering, -1..1, before sensitivity.</summary>
         public double Steering { get; init; }
+        /// <summary>Throttle / brake actually sent out (after the pedal source was merged).</summary>
         public double Throttle { get; init; }
         public double Brake { get; init; }
         public double Clutch { get; init; }
         public double Handbrake { get; init; }
+
+        /// <summary>Throttle / brake reported by the device itself (wheel triggers), before merging.</summary>
+        public double TriggerThrottle { get; init; }
+        public double TriggerBrake { get; init; }
+
+        /// <summary>Throttle / brake coming from the separate pedal set, 0 when pedals are off.</summary>
+        public double PedalThrottle { get; init; }
+        public double PedalBrake { get; init; }
 
         /// <summary>Buttons that will be injected into the virtual Xbox controller.</summary>
         public GamepadButtons OutputButtons { get; init; }
